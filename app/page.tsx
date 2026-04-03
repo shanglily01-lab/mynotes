@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [message, setMessage] = useState("");
+  const [fetchLogs, setFetchLogs] = useState<string[]>([]);
 
   async function loadSubjects() {
     const r = await fetch("/api/subjects");
@@ -31,15 +32,33 @@ export default function DashboardPage() {
 
   async function handleFetchContent() {
     setFetching(true);
+    setFetchLogs([]);
     setMessage("正在拉取最新内容...");
     try {
       const res = await fetch("/api/content/fetch", { method: "POST" });
-      const data = await res.json();
-      const total = Object.values(data.inserted as Record<string, number>).reduce(
-        (a, b) => a + b,
-        0
-      );
-      setMessage(`拉取完成，新增 ${total} 篇文章`);
+      if (!res.body) throw new Error("no body");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const json = JSON.parse(line.slice(6)) as {
+            msg?: string; done?: boolean; inserted?: Record<string, number>; error?: string;
+          };
+          if (json.msg) setFetchLogs((prev) => [...prev, json.msg!]);
+          if (json.done) {
+            const total = Object.values(json.inserted ?? {}).reduce((a, b) => a + b, 0);
+            setMessage(`拉取完成，新增/更新 ${total} 篇`);
+          }
+          if (json.error) setMessage(`拉取出错: ${json.error}`);
+        }
+      }
     } catch {
       setMessage("拉取失败，请检查网络");
     } finally {
@@ -98,9 +117,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {message && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          {message}
+      {(message || fetchLogs.length > 0) && (
+        <div className="mb-4 border border-blue-200 rounded overflow-hidden">
+          {message && (
+            <div className="px-4 py-2 bg-blue-50 text-sm text-blue-800 font-medium">
+              {message}
+            </div>
+          )}
+          {fetchLogs.length > 0 && (
+            <div className="bg-gray-900 text-gray-200 text-xs font-mono p-3 max-h-48 overflow-y-auto">
+              {fetchLogs.map((log, i) => (
+                <div key={i}>{log}</div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

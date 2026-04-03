@@ -24,7 +24,7 @@ export async function POST() {
 
   const articlesPerSubject: Record<
     string,
-    { id: string; title: string; summary: string; subjectName: string }[]
+    { id: string; title: string; summary: string; subjectName: string; foundations: string[] }[]
   > = {};
 
   for (const subject of SUBJECTS) {
@@ -41,6 +41,7 @@ export async function POST() {
           title: a.title,
           summary: await readText(a.summaryPath),
           subjectName: subject.name,
+          foundations: subject.foundations,
         }))
       );
       articlesPerSubject[subject.id] = withSummary;
@@ -51,6 +52,7 @@ export async function POST() {
           title: `${subject.name}基础知识回顾`,
           summary: `请复习${subject.name}的基础概念和核心理论`,
           subjectName: subject.name,
+          foundations: subject.foundations,
         },
       ];
     }

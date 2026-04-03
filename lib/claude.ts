@@ -33,22 +33,35 @@ export interface PlanItemRaw {
 export async function generateDailyPlan(
   articlesPerSubject: Record<
     string,
-    { id: string; title: string; summary: string; subjectName: string }[]
+    {
+      id: string;
+      title: string;
+      summary: string;
+      subjectName: string;
+      foundations: string[];
+    }[]
   >
 ): Promise<PlanItemRaw[]> {
   const prompt = Object.entries(articlesPerSubject)
     .map(([subjectId, articles]) => {
       const subjectName = articles[0]?.subjectName ?? subjectId;
+      const foundations = articles[0]?.foundations ?? [];
       const articleList = articles
         .slice(0, 3)
         .map((a, i) => `${i + 1}. ${a.title}\n摘要：${a.summary}`)
         .join("\n\n");
-      return `学科：${subjectName}（id: ${subjectId}）\n${articleList}`;
+      const foundationList = foundations.map((f) => `• ${f}`).join("\n");
+      return `学科：${subjectName}（id: ${subjectId}）\n\n【系统性基础主题（每次选1个融入任务）】\n${foundationList}\n\n【最新文章】\n${articleList}`;
     })
     .join("\n\n---\n\n");
 
   const text = await ask(
-    `根据以下各学科最新文章，为每个学科生成1-2个今日学习任务。每个任务包含标题和学习要点（300字以内）。
+    `根据以下各学科的基础主题大纲和最新文章，为每个学科生成1-2个今日学习任务。
+
+要求：
+- 每个任务必须结合一个基础主题（系统性认知）和最新文章（时效性）
+- 任务内容300字以内，包含核心概念解释和与文章的关联
+- 循环覆盖基础主题，确保系统性学习
 
 只返回JSON数组，不要其他文字：
 [
@@ -59,7 +72,7 @@ export async function generateDailyPlan(
   }
 ]
 
-文章资料：
+资料：
 ${prompt}`,
     8192
   );
