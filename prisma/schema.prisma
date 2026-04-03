@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Subject {
+  id       String     @id
+  name     String
+  icon     String
+  articles Article[]
+  plans    PlanItem[]
+}
+
+model Article {
+  id          String   @id @default(cuid())
+  subjectId   String
+  title       String   @db.VarChar(500)
+  summaryPath String   @db.VarChar(500)
+  url         String   @db.VarChar(1000)
+  source      String
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([url])
+  @@index([subjectId, publishedAt(sort: Desc)])
+}
+
+model DailyPlan {
+  id        String     @id @default(cuid())
+  date      DateTime   @unique @db.Date
+  items     PlanItem[]
+  createdAt DateTime   @default(now())
+}
+
+model PlanItem {
+  id          String    @id @default(cuid())
+  planId      String
+  subjectId   String
+  title       String    @db.VarChar(500)
+  contentPath String    @db.VarChar(500)
+  articleId   String?
+  done        Boolean   @default(false)
+  plan        DailyPlan @relation(fields: [planId], references: [id])
+  subject     Subject   @relation(fields: [subjectId], references: [id])
+
+  @@index([planId])
+}
+
+model Exam {
+  id        String         @id @default(cuid())
+  weekStart DateTime       @unique @db.Date
+  questions ExamQuestion[]
+  createdAt DateTime       @default(now())
+}
+
+model ExamQuestion {
+  id          String      @id @default(cuid())
+  examId      String
+  subject     String
+  options     String      @db.Text
+  answer      String      @db.Char(1)
+  contentPath String      @db.VarChar(500)
+  exam        Exam        @relation(fields: [examId], references: [id])
+  userAns     UserAnswer?
+
+  @@index([examId])
+}
+
+model UserAnswer {
+  id         String       @id @default(cuid())
+  questionId String       @unique
+  answer     String       @db.Char(1)
+  correct    Boolean
+  question   ExamQuestion @relation(fields: [questionId], references: [id])
+}
+
+model Progress {
+  id             String   @id @default(cuid())
+  subjectId      String
+  weekStart      DateTime @db.Date
+  score          Int?
+  totalQ         Int?
+  evaluationPath String?  @db.VarChar(500)
+
+  @@unique([subjectId, weekStart])
+  @@index([weekStart])
+}
