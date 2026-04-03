@@ -93,11 +93,12 @@ export const SUBJECTS: SubjectConfig[] = [
     ],
   },
   {
-    id: "ai-news",
-    name: "AI 日报",
+    id: "ai",
+    name: "人工智能",
     icon: "cpu",
     rssFeeds: [
       { url: "https://export.arxiv.org/rss/cs.AI", name: "ArXiv cs.AI" },
+      { url: "https://export.arxiv.org/rss/cs.LG", name: "ArXiv cs.LG" },
       { url: "https://huggingface.co/blog/feed.xml", name: "HuggingFace Blog" },
     ],
     foundations: [
@@ -112,6 +113,18 @@ export const SUBJECTS: SubjectConfig[] = [
       "AI 伦理与安全：偏见、可解释性、对齐问题",
       "AI 工程：模型部署、推理优化、RAG、向量数据库",
     ],
+  },
+  {
+    id: "news",
+    name: "每日新闻",
+    icon: "newspaper",
+    rssFeeds: [
+      { url: "https://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World News" },
+      { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", name: "NYT World" },
+      { url: "https://feeds.reuters.com/reuters/topNews", name: "Reuters Top News" },
+      { url: "https://www.theguardian.com/world/rss", name: "The Guardian World" },
+    ],
+    foundations: [], // 新闻不需要基础主题大纲，只做时事摘要
   },
   {
     id: "english",

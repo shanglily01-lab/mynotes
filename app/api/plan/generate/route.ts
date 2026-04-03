@@ -28,10 +28,13 @@ export async function POST() {
   > = {};
 
   for (const subject of SUBJECTS) {
+    // 新闻只取当天；其他学科取最近三天
+    const since = subject.id === "news" ? today : threeDaysAgo;
+
     const articles = await prisma.article.findMany({
-      where: { subjectId: subject.id, publishedAt: { gte: threeDaysAgo } },
+      where: { subjectId: subject.id, publishedAt: { gte: since } },
       orderBy: { publishedAt: "desc" },
-      take: 3,
+      take: subject.id === "news" ? 5 : 3,
     });
 
     if (articles.length > 0) {
@@ -45,7 +48,8 @@ export async function POST() {
         }))
       );
       articlesPerSubject[subject.id] = withSummary;
-    } else {
+    } else if (subject.id !== "news") {
+      // 新闻没有当天内容就跳过，其他学科用基础兜底
       articlesPerSubject[subject.id] = [
         {
           id: "",

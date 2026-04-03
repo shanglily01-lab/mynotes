@@ -3,10 +3,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 const MODEL = "gemini-2.5-flash";
 
-async function ask(prompt: string, maxTokens = 1024): Promise<string> {
+async function ask(prompt: string, maxTokens = 1024, jsonMode = false): Promise<string> {
   const model = genAI.getGenerativeModel({
     model: MODEL,
-    generationConfig: { maxOutputTokens: maxTokens },
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      ...(jsonMode ? { responseMimeType: "application/json" } : {}),
+    },
   });
   const result = await model.generateContent(prompt);
   return result.response.text();
@@ -50,17 +53,20 @@ export async function generateDailyPlan(
         .slice(0, 3)
         .map((a, i) => `${i + 1}. ${a.title}\n摘要：${a.summary}`)
         .join("\n\n");
+      if (subjectId === "news") {
+        return `学科：${subjectName}（id: ${subjectId}）\n\n【今日新闻】\n${articleList}`;
+      }
       const foundationList = foundations.map((f) => `• ${f}`).join("\n");
       return `学科：${subjectName}（id: ${subjectId}）\n\n【系统性基础主题（每次选1个融入任务）】\n${foundationList}\n\n【最新文章】\n${articleList}`;
     })
     .join("\n\n---\n\n");
 
   const text = await ask(
-    `根据以下各学科的基础主题大纲和最新文章，为每个学科生成1-2个今日学习任务。
+    `根据以下各学科的资料，为每个学科生成今日学习任务。
 
 要求：
-- 每个任务必须结合一个基础主题（系统性认知）和最新文章（时效性）
-- 任务内容300字以内，包含核心概念解释和与文章的关联
+- 学科类（非新闻）：每个任务结合一个基础主题和最新文章，300字以内，含核心概念和与文章的关联
+- 每日新闻（news）：生成2-3条今日热点，每条100字以内，说明事件背景和意义
 - 循环覆盖基础主题，确保系统性学习
 
 只返回JSON数组，不要其他文字：
@@ -74,7 +80,8 @@ export async function generateDailyPlan(
 
 资料：
 ${prompt}`,
-    8192
+    8192,
+    true
   );
 
   try {
@@ -115,7 +122,8 @@ export async function generateExamQuestions(
 
 本周学习内容：
 ${weekSummary}`,
-    8192
+    8192,
+    true
   );
 
   try {
@@ -161,7 +169,8 @@ export async function generateEvaluation(
 
 错题列表：
 ${prompt}`,
-    1024
+    1024,
+    true
   );
 
   try {
@@ -226,7 +235,8 @@ ${foundationList}
     }
   ]
 }`,
-    16384
+    16384,
+    true
   );
 
   try {
