@@ -173,3 +173,68 @@ ${prompt}`,
     return {};
   }
 }
+
+export interface RoadmapStage {
+  stage: string;         // 阶段名称，如"入门"、"进阶"、"高级"
+  duration: string;      // 预计时长，如"1-2个月"
+  goal: string;          // 阶段目标
+  topics: {
+    title: string;       // 主题名
+    content: string;     // 详细讲解（300-500字）
+    keyPoints: string[]; // 核心要点（3-5条）
+  }[];
+  milestone: string;     // 里程碑：完成本阶段后能做什么
+}
+
+export interface SubjectRoadmap {
+  overview: string;      // 学科概述（200字）
+  whyLearn: string;      // 为什么学（100字）
+  stages: RoadmapStage[];
+}
+
+export async function generateSubjectMaterial(
+  subjectName: string,
+  foundations: string[]
+): Promise<SubjectRoadmap> {
+  const foundationList = foundations.map((f, i) => `${i + 1}. ${f}`).join("\n");
+
+  const text = await ask(
+    `你是一位资深教育专家。请为"${subjectName}"学科生成一份完整的系统性学习资料和成长路径。
+
+学科基础主题参考：
+${foundationList}
+
+要求生成3个学习阶段（入门→进阶→高级），每个阶段包含3-4个核心主题，每个主题有详细讲解。
+
+只返回JSON，不要其他文字：
+{
+  "overview": "学科概述200字以内",
+  "whyLearn": "为什么要学这门学科100字以内",
+  "stages": [
+    {
+      "stage": "入门阶段",
+      "duration": "预计学习时长",
+      "goal": "本阶段学习目标",
+      "topics": [
+        {
+          "title": "主题名称",
+          "content": "详细讲解300-500字，包括概念、原理、实例",
+          "keyPoints": ["核心要点1", "核心要点2", "核心要点3"]
+        }
+      ],
+      "milestone": "完成本阶段后你能做什么/达到什么水平"
+    }
+  ]
+}`,
+    16384
+  );
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("no JSON");
+    return JSON.parse(jsonMatch[0]) as SubjectRoadmap;
+  } catch (err) {
+    console.error("generateSubjectMaterial parse error:", err);
+    throw err;
+  }
+}

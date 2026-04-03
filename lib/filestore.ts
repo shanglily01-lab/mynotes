@@ -8,6 +8,7 @@ const DIRS = {
   plans: path.join(DATA_DIR, "plans"),
   exams: path.join(DATA_DIR, "exams"),
   progress: path.join(DATA_DIR, "progress"),
+  materials: path.join(DATA_DIR, "materials"),
 } as const;
 
 type StoreDir = keyof typeof DIRS;

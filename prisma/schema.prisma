@@ -8,11 +8,20 @@ datasource db {
 }
 
 model Subject {
-  id       String     @id
+  id       String          @id
   name     String
   icon     String
   articles Article[]
   plans    PlanItem[]
+  material SubjectMaterial?
+}
+
+model SubjectMaterial {
+  id          String   @id @default(cuid())
+  subjectId   String   @unique
+  roadmapPath String   @db.VarChar(500)
+  updatedAt   DateTime @updatedAt
+  subject     Subject  @relation(fields: [subjectId], references: [id])
 }
 
 model Article {
