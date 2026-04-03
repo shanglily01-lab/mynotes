@@ -1,9 +1,16 @@
+export interface OpenResource {
+  title: string;
+  url: string;
+  description: string;
+}
+
 export interface SubjectConfig {
   id: string;
   name: string;
   icon: string;
   rssFeeds: { url: string; name: string }[];
-  foundations: string[]; // 系统性基础主题，AI 生成计划时参考
+  foundations: string[];
+  openResources: OpenResource[];
 }
 
 export const SUBJECTS: SubjectConfig[] = [
@@ -28,6 +35,28 @@ export const SUBJECTS: SubjectConfig[] = [
       "心理障碍：分类诊断、常见障碍（抑郁、焦虑、精神分裂）",
       "心理治疗：认知行为疗法、精神分析、人本主义疗法",
     ],
+    openResources: [
+      {
+        title: "MIT OCW: Introduction to Psychology (9.00SC)",
+        url: "https://ocw.mit.edu/courses/9-00sc-introduction-to-psychology-fall-2011/pages/syllabus/",
+        description: "MIT 开放课件：心理学导论，含完整课程大纲和讲义",
+      },
+      {
+        title: "OpenStax Psychology 2e",
+        url: "https://openstax.org/books/psychology-2e/pages/1-introduction",
+        description: "OpenStax 免费开放教材：心理学第二版，全书可在线阅读",
+      },
+      {
+        title: "Stanford: Human Behavioral Biology (Robert Sapolsky)",
+        url: "https://www.youtube.com/playlist?list=PL848F2368C90DDC3D",
+        description: "斯坦福大学 Sapolsky 教授人类行为生物学公开课",
+      },
+      {
+        title: "Yale OCW: Introduction to Psychology (PSYC 110)",
+        url: "https://oyc.yale.edu/psychology/psyc-110",
+        description: "耶鲁大学心理学导论公开课，含视频和讲义",
+      },
+    ],
   },
   {
     id: "biology",
@@ -48,6 +77,28 @@ export const SUBJECTS: SubjectConfig[] = [
       "神经与内分泌：神经信号传导、激素调节、反馈机制",
       "发育生物学：细胞分化、胚胎发育、干细胞",
       "生物技术：PCR、基因编辑（CRISPR）、基因组学",
+    ],
+    openResources: [
+      {
+        title: "MIT OCW: Biology (7.01SC Fundamentals of Biology)",
+        url: "https://ocw.mit.edu/courses/7-01sc-fundamentals-of-biology-fall-2011/pages/syllabus/",
+        description: "MIT 生物学基础课程大纲，含分子生物学、遗传学、进化等模块",
+      },
+      {
+        title: "OpenStax Biology 2e",
+        url: "https://openstax.org/books/biology-2e/pages/1-introduction",
+        description: "OpenStax 免费开放教材：生物学第二版",
+      },
+      {
+        title: "MIT OCW: Introductory Biology (7.016)",
+        url: "https://ocw.mit.edu/courses/7-016-introductory-biology-fall-2018/pages/syllabus/",
+        description: "MIT 生物学导论 2018 版，含基因组学和细胞生物学",
+      },
+      {
+        title: "Khan Academy: Biology",
+        url: "https://www.khanacademy.org/science/biology",
+        description: "可汗学院生物学全套免费课程，从细胞到生态系统",
+      },
     ],
   },
   {
@@ -70,6 +121,28 @@ export const SUBJECTS: SubjectConfig[] = [
       "广义相对论概要：时空弯曲、引力波、黑洞",
       "凝聚态物理：能带理论、半导体、超导",
     ],
+    openResources: [
+      {
+        title: "MIT OCW: Classical Mechanics (8.01SC)",
+        url: "https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/pages/syllabus/",
+        description: "MIT 经典力学课程，Walter Lewin 教授主讲",
+      },
+      {
+        title: "MIT OCW: Electricity and Magnetism (8.02)",
+        url: "https://ocw.mit.edu/courses/8-02-physics-ii-electricity-and-magnetism-spring-2007/pages/syllabus/",
+        description: "MIT 电磁学课程大纲与讲义",
+      },
+      {
+        title: "OpenStax University Physics Vol.1-3",
+        url: "https://openstax.org/subjects/science",
+        description: "OpenStax 大学物理全三卷：力学、热学、电磁学、光学、近代物理",
+      },
+      {
+        title: "The Feynman Lectures on Physics (Online)",
+        url: "https://www.feynmanlectures.caltech.edu/",
+        description: "费曼物理学讲义全文在线免费阅读，加州理工官方授权",
+      },
+    ],
   },
   {
     id: "sociology",
@@ -90,6 +163,28 @@ export const SUBJECTS: SubjectConfig[] = [
       "政治社会学：权力、国家、政治参与、民主理论",
       "经济社会学：市场、劳动、消费、全球化",
       "社会问题：犯罪、贫困、歧视、社会运动",
+    ],
+    openResources: [
+      {
+        title: "OpenStax Introduction to Sociology 3e",
+        url: "https://openstax.org/books/introduction-sociology-3e/pages/1-introduction",
+        description: "OpenStax 社会学导论第三版，免费开放教材",
+      },
+      {
+        title: "MIT OCW: Introduction to Sociology (17.950)",
+        url: "https://ocw.mit.edu/courses/17-950-introduction-to-sociology-fall-2005/pages/syllabus/",
+        description: "MIT 社会学导论课程大纲和阅读材料",
+      },
+      {
+        title: "Yale OCW: Foundations of Modern Social Theory (SOCY 151)",
+        url: "https://oyc.yale.edu/sociology/socy-151",
+        description: "耶鲁大学现代社会理论基础公开课，含涂尔干、韦伯、马克思",
+      },
+      {
+        title: "Stanford Encyclopedia: Social Science Methodology",
+        url: "https://plato.stanford.edu/entries/social-science/",
+        description: "斯坦福哲学百科：社会科学研究方法论",
+      },
     ],
   },
   {
@@ -113,6 +208,33 @@ export const SUBJECTS: SubjectConfig[] = [
       "AI 伦理与安全：偏见、可解释性、对齐问题",
       "AI 工程：模型部署、推理优化、RAG、向量数据库",
     ],
+    openResources: [
+      {
+        title: "Stanford CS229: Machine Learning (Andrew Ng)",
+        url: "https://cs229.stanford.edu/syllabus-autumn2018.html",
+        description: "斯坦福 CS229 机器学习课程大纲，Andrew Ng 主讲",
+      },
+      {
+        title: "Stanford CS231n: Deep Learning for Computer Vision",
+        url: "https://cs231n.stanford.edu/",
+        description: "斯坦福深度学习与计算机视觉课程，含讲义和作业",
+      },
+      {
+        title: "fast.ai: Practical Deep Learning for Coders",
+        url: "https://course.fast.ai/",
+        description: "fast.ai 实践深度学习课程，免费开放，含 Jupyter Notebook",
+      },
+      {
+        title: "Deep Learning Book (Goodfellow, Bengio, Courville)",
+        url: "https://www.deeplearningbook.org/",
+        description: "深度学习圣经全书在线免费阅读，MIT Press 官方授权",
+      },
+      {
+        title: "Andrej Karpathy: Neural Networks Zero to Hero",
+        url: "https://karpathy.ai/zero-to-hero.html",
+        description: "Karpathy（前特斯拉 AI 总监）从零手写神经网络系列课程",
+      },
+    ],
   },
   {
     id: "news",
@@ -124,7 +246,8 @@ export const SUBJECTS: SubjectConfig[] = [
       { url: "https://feeds.reuters.com/reuters/topNews", name: "Reuters Top News" },
       { url: "https://www.theguardian.com/world/rss", name: "The Guardian World" },
     ],
-    foundations: [], // 新闻不需要基础主题大纲，只做时事摘要
+    foundations: [],
+    openResources: [], // 新闻无需课本资源
   },
   {
     id: "english",
@@ -145,6 +268,28 @@ export const SUBJECTS: SubjectConfig[] = [
       "商务英语：邮件写作、会议用语、报告结构",
       "学术英语：论文摘要、引用规范、学术词汇",
       "英美文化：习语、俚语、文化背景对语言的影响",
+    ],
+    openResources: [
+      {
+        title: "Purdue OWL: English Grammar and Writing",
+        url: "https://owl.purdue.edu/owl/general_writing/index.html",
+        description: "普渡大学写作实验室：英语语法与写作指南，全球最权威免费资源",
+      },
+      {
+        title: "BBC Learning English: Grammar",
+        url: "https://www.bbc.co.uk/learningenglish/english/grammar",
+        description: "BBC 英语学习语法专区，含视频讲解和练习",
+      },
+      {
+        title: "Oxford Learner's Dictionaries: Grammar",
+        url: "https://www.oxfordlearnersdictionaries.com/grammar/",
+        description: "牛津学习者词典语法指南，含例句和用法说明",
+      },
+      {
+        title: "MIT OpenCourseWare: Writing and Rhetoric",
+        url: "https://ocw.mit.edu/courses/21w-035-science-writing-and-new-media-fall-2016/pages/syllabus/",
+        description: "MIT 科技写作与修辞课程，提升学术英语写作能力",
+      },
     ],
   },
 ];

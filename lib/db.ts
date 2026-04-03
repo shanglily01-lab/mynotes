@@ -5,21 +5,16 @@ const globalForPrisma = globalThis as unknown as {
   prismaHeartbeat: ReturnType<typeof setInterval> | undefined;
 };
 
-function createPrisma() {
-  const client = new PrismaClient();
-
-  // Keep connection alive — MySQL drops idle connections after ~60s
-  if (!globalForPrisma.prismaHeartbeat) {
-    globalForPrisma.prismaHeartbeat = setInterval(() => {
-      client.$queryRaw`SELECT 1`.catch(() => {});
-    }, 30_000);
-  }
-
-  return client;
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = new PrismaClient();
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrisma();
+export const prisma = globalForPrisma.prisma;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+// Keep connection alive — MySQL drops idle connections after wait_timeout (~60s by default)
+if (!globalForPrisma.prismaHeartbeat) {
+  globalForPrisma.prismaHeartbeat = setInterval(() => {
+    const client = globalForPrisma.prisma;
+    if (client) client.$queryRaw`SELECT 1`.catch(() => {});
+  }, 30_000);
 }

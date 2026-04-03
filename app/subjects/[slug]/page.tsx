@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { use } from "react";
 import { getSubject } from "@/lib/subjects";
 import type { SubjectRoadmap } from "@/lib/claude";
+import type { OpenResource } from "@/lib/subjects";
 
 interface Article {
   id: string;
@@ -14,7 +15,7 @@ interface Article {
   publishedAt: string;
 }
 
-type Tab = "roadmap" | "articles";
+type Tab = "roadmap" | "articles" | "resources";
 
 export default function SubjectPage({
   params,
@@ -26,6 +27,7 @@ export default function SubjectPage({
   const [tab, setTab] = useState<Tab>("roadmap");
   const [articles, setArticles] = useState<Article[]>([]);
   const [roadmap, setRoadmap] = useState<SubjectRoadmap | null>(null);
+  const [openResources, setOpenResources] = useState<OpenResource[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [loadingRoadmap, setLoadingRoadmap] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -35,7 +37,10 @@ export default function SubjectPage({
   useEffect(() => {
     fetch(`/api/subjects/${slug}/material`)
       .then((r) => r.json())
-      .then((d) => setRoadmap(d.material?.roadmap ?? null))
+      .then((d) => {
+        setRoadmap(d.material?.roadmap ?? null);
+        setOpenResources(d.material?.openResources ?? subject?.openResources ?? []);
+      })
       .finally(() => setLoadingRoadmap(false));
   }, [slug]);
 
@@ -53,7 +58,10 @@ export default function SubjectPage({
     try {
       const res = await fetch(`/api/subjects/${slug}/material`, { method: "POST" });
       const d = await res.json();
-      if (d.ok) setRoadmap(d.roadmap as SubjectRoadmap);
+      if (d.ok) {
+        setRoadmap(d.roadmap as SubjectRoadmap);
+        setOpenResources((d.openResources as OpenResource[]) ?? []);
+      }
     } finally {
       setGenerating(false);
     }
@@ -83,7 +91,7 @@ export default function SubjectPage({
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
-        {(["roadmap", "articles"] as Tab[]).map((t) => (
+        {(["roadmap", "resources", "articles"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -93,7 +101,7 @@ export default function SubjectPage({
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "roadmap" ? "学习路径" : "最新文章"}
+            {t === "roadmap" ? "学习路径" : t === "resources" ? "参考资源" : "最新文章"}
           </button>
         ))}
       </div>
@@ -186,6 +194,39 @@ export default function SubjectPage({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resources Tab */}
+      {tab === "resources" && (
+        <div>
+          {openResources.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">该学科暂无推荐资源</div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-500 mb-4">
+                以下为名校开放课件和权威教材，AI 生成学习路径时参考这些资源。点击链接直接访问原始材料。
+              </p>
+              {openResources.map((r, i) => (
+                <a
+                  key={i}
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-blue-300 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-800 mb-1">{r.title}</h3>
+                      <p className="text-sm text-gray-500">{r.description}</p>
+                      <p className="text-xs text-blue-500 mt-2 truncate">{r.url}</p>
+                    </div>
+                    <span className="text-gray-400 flex-shrink-0 mt-1">→</span>
+                  </div>
+                </a>
+              ))}
             </div>
           )}
         </div>

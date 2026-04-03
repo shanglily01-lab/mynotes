@@ -203,17 +203,33 @@ export interface SubjectRoadmap {
 
 export async function generateSubjectMaterial(
   subjectName: string,
-  foundations: string[]
+  foundations: string[],
+  resources: { title: string; url: string; description: string; content: string }[] = []
 ): Promise<SubjectRoadmap> {
   const foundationList = foundations.map((f, i) => `${i + 1}. ${f}`).join("\n");
 
-  const text = await ask(
-    `你是一位资深教育专家。请为"${subjectName}"学科生成一份完整的系统性学习资料和成长路径。
+  const resourceSection =
+    resources.length > 0
+      ? `\n\n以下是来自名校开放课件和权威教材的真实内容摘录，请基于这些内容生成学习材料：\n\n` +
+        resources
+          .map(
+            (r) =>
+              `【${r.title}】\n来源：${r.url}\n说明：${r.description}\n内容摘录：\n${r.content.slice(0, 2000)}`
+          )
+          .join("\n\n---\n\n")
+      : "";
 
-学科基础主题参考：
+  const text = await ask(
+    `你是一位资深教育专家。请为"${subjectName}"学科生成一份完整的系统性学习资料和成长路径。${resourceSection}
+
+学科基础主题大纲：
 ${foundationList}
 
-要求生成3个学习阶段（入门→进阶→高级），每个阶段包含3-4个核心主题，每个主题有详细讲解。
+要求：
+- 生成3个学习阶段（入门→进阶→高级），每个阶段3-4个核心主题
+- 每个主题详细讲解300-500字，包含概念解释、原理推导、具体示例
+- 内容要忠实于名校教材的知识体系，深度适合自学
+- 推荐名校资源中的具体章节或视频
 
 只返回JSON，不要其他文字：
 {

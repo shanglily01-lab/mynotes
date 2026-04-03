@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSubject } from "@/lib/subjects";
 import { generateSubjectMaterial } from "@/lib/claude";
+import { fetchOpenResources } from "@/lib/opencourse";
 import { writeText, readText } from "@/lib/filestore";
 
 export async function GET(
@@ -21,7 +22,13 @@ export async function GET(
 
   try {
     const roadmap = JSON.parse(raw);
-    return NextResponse.json({ material: { ...material, roadmap } });
+    return NextResponse.json({
+      material: {
+        ...material,
+        roadmap,
+        openResources: subject?.openResources ?? [],
+      },
+    });
   } catch {
     return NextResponse.json({ material: null });
   }
@@ -38,23 +45,41 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "Subject not found" }, { status: 404 });
   }
 
-  const roadmap = await generateSubjectMaterial(subject.name, subject.foundations);
+  // 抓取名校公开资源内容（并发）
+  const fetchedResources = await fetchOpenResources(subject.openResources);
+  console.log(`[material] fetched ${fetchedResources.length}/${subject.openResources.length} resources for ${slug}`);
 
-  await prisma.$disconnect();
-  await prisma.$connect();
+  const roadmap = await generateSubjectMaterial(subject.name, subject.foundations, fetchedResources);
 
-  const existing = await prisma.subjectMaterial.findUnique({
-    where: { subjectId: slug },
-  });
+  // After a ~30s LLM call MySQL may have dropped the idle connection (P1017).
+  // Reconnect once and retry rather than calling $disconnect on the shared singleton.
+  const saveToDb = async () => {
+    const existing = await prisma.subjectMaterial.findUnique({
+      where: { subjectId: slug },
+    });
+    const id = existing?.id ?? slug;
+    const roadmapPath = await writeText("materials", id, JSON.stringify(roadmap, null, 2));
+    await prisma.subjectMaterial.upsert({
+      where: { subjectId: slug },
+      create: { subjectId: slug, roadmapPath },
+      update: { roadmapPath },
+    });
+    return roadmapPath;
+  };
 
-  const id = existing?.id ?? slug;
-  const roadmapPath = await writeText("materials", id, JSON.stringify(roadmap, null, 2));
+  try {
+    await saveToDb();
+  } catch (err: unknown) {
+    const code = err && typeof err === "object" && "errorCode" in err
+      ? (err as { errorCode: string }).errorCode
+      : null;
+    if (code === "P1017") {
+      await prisma.$connect();
+      await saveToDb();
+    } else {
+      throw err;
+    }
+  }
 
-  await prisma.subjectMaterial.upsert({
-    where: { subjectId: slug },
-    create: { subjectId: slug, roadmapPath },
-    update: { roadmapPath },
-  });
-
-  return NextResponse.json({ ok: true, roadmap });
+  return NextResponse.json({ ok: true, roadmap, openResources: subject.openResources });
 }
