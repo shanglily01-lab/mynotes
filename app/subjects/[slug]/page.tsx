@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { getSubject } from "@/lib/subjects";
-import type { SubjectRoadmap } from "@/lib/claude";
 import type { OpenResource } from "@/lib/subjects";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Article {
   id: string;
@@ -15,7 +16,7 @@ interface Article {
   publishedAt: string;
 }
 
-type Tab = "roadmap" | "articles" | "resources";
+type Tab = "material" | "resources" | "articles";
 
 export default function SubjectPage({
   params,
@@ -24,25 +25,27 @@ export default function SubjectPage({
 }) {
   const { slug } = use(params);
   const subject = getSubject(slug);
-  const [tab, setTab] = useState<Tab>("roadmap");
+
+  const [tab, setTab] = useState<Tab>("material");
   const [articles, setArticles] = useState<Article[]>([]);
-  const [roadmap, setRoadmap] = useState<SubjectRoadmap | null>(null);
-  const [openResources, setOpenResources] = useState<OpenResource[]>([]);
+  const [content, setContent] = useState<string>("");
+  const [openResources, setOpenResources] = useState<OpenResource[]>(
+    subject?.openResources ?? []
+  );
   const [loadingArticles, setLoadingArticles] = useState(false);
-  const [loadingRoadmap, setLoadingRoadmap] = useState(true);
+  const [loadingMaterial, setLoadingMaterial] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [expandedStage, setExpandedStage] = useState<number>(0);
-  const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch(`/api/subjects/${slug}/material`)
       .then((r) => r.json())
       .then((d) => {
-        setRoadmap(d.material?.roadmap ?? null);
+        setContent(d.material?.content ?? "");
         setOpenResources(d.material?.openResources ?? subject?.openResources ?? []);
       })
-      .finally(() => setLoadingRoadmap(false));
-  }, [slug]);
+      .finally(() => setLoadingMaterial(false));
+  }, [slug, subject?.openResources]);
 
   useEffect(() => {
     if (tab !== "articles" || articles.length > 0) return;
@@ -55,12 +58,20 @@ export default function SubjectPage({
 
   async function handleGenerate() {
     setGenerating(true);
+    setError("");
     try {
       const res = await fetch(`/api/subjects/${slug}/material`, { method: "POST" });
-      const d = await res.json();
+      const text = await res.text();
+      if (!res.ok || !text) {
+        setError(`生成失败 (${res.status})，请重试`);
+        return;
+      }
+      const d = JSON.parse(text) as { ok: boolean; content: string; openResources: OpenResource[]; error?: string };
       if (d.ok) {
-        setRoadmap(d.roadmap as SubjectRoadmap);
-        setOpenResources((d.openResources as OpenResource[]) ?? []);
+        setContent(d.content);
+        setOpenResources(d.openResources ?? []);
+      } else {
+        setError(d.error ?? "生成失败，请重试");
       }
     } finally {
       setGenerating(false);
@@ -71,27 +82,34 @@ export default function SubjectPage({
     return <div className="text-center py-20 text-gray-400">学科不存在</div>;
   }
 
+  const tabLabels: Record<Tab, string> = {
+    material: "学习指南",
+    resources: "参考资源",
+    articles: "最新文章",
+  };
+
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{subject.name}</h1>
-          <p className="text-sm text-gray-500 mt-1">系统性学习路径 · 最新资讯</p>
+          <p className="text-sm text-gray-500 mt-1">经典著作 · 学习路径 · 最新资讯</p>
         </div>
-        {tab === "roadmap" && (
+        {tab === "material" && (
           <button
             onClick={handleGenerate}
             disabled={generating}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {generating ? "生成中..." : roadmap ? "重新生成" : "生成学习路径"}
+            {generating ? "生成中（约60s）..." : content ? "重新生成" : "生成学习指南"}
           </button>
         )}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
-        {(["roadmap", "resources", "articles"] as Tab[]).map((t) => (
+        {(["material", "resources", "articles"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -101,99 +119,42 @@ export default function SubjectPage({
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            {t === "roadmap" ? "学习路径" : t === "resources" ? "参考资源" : "最新文章"}
+            {tabLabels[t]}
           </button>
         ))}
       </div>
 
-      {/* Roadmap Tab */}
-      {tab === "roadmap" && (
+      {/* Material Tab */}
+      {tab === "material" && (
         <div>
-          {loadingRoadmap ? (
+          {error && (
+            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {loadingMaterial ? (
             <div className="text-center py-20 text-gray-400">加载中...</div>
-          ) : !roadmap ? (
+          ) : !content ? (
             <div className="text-center py-20">
-              <p className="text-gray-400 mb-4">暂无学习路径，点击右上角按钮生成</p>
-              <p className="text-xs text-gray-300">生成需要约30秒，请耐心等待</p>
+              <p className="text-gray-400 mb-2">暂无学习指南</p>
+              <p className="text-xs text-gray-300">点击右上角"生成学习指南"，约60秒生成完毕</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Overview */}
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-5">
-                <h2 className="font-semibold text-blue-900 mb-2">学科概述</h2>
-                <p className="text-sm text-blue-800 leading-relaxed">{roadmap.overview}</p>
-                <div className="mt-3 pt-3 border-t border-blue-100">
-                  <h3 className="text-xs font-medium text-blue-700 mb-1">为什么要学</h3>
-                  <p className="text-sm text-blue-700 leading-relaxed">{roadmap.whyLearn}</p>
-                </div>
-              </div>
-
-              {/* Stages */}
-              <div className="space-y-4">
-                {roadmap.stages.map((stage, si) => (
-                  <div key={si} className="border border-gray-200 rounded-lg overflow-hidden">
-                    {/* Stage header */}
-                    <button
-                      onClick={() => setExpandedStage(expandedStage === si ? -1 : si)}
-                      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
-                          {si + 1}
-                        </span>
-                        <div>
-                          <div className="font-semibold text-gray-800">{stage.stage}</div>
-                          <div className="text-xs text-gray-500">{stage.duration} · {stage.goal}</div>
-                        </div>
-                      </div>
-                      <span className="text-gray-400 text-lg">{expandedStage === si ? "−" : "+"}</span>
-                    </button>
-
-                    {expandedStage === si && (
-                      <div className="p-4 space-y-3">
-                        {/* Topics */}
-                        {stage.topics.map((topic, ti) => {
-                          const key = si * 100 + ti;
-                          const isOpen = expandedTopic === key;
-                          return (
-                            <div key={ti} className="border border-gray-100 rounded-lg overflow-hidden">
-                              <button
-                                onClick={() => setExpandedTopic(isOpen ? null : key)}
-                                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left"
-                              >
-                                <span className="font-medium text-gray-700 text-sm">{topic.title}</span>
-                                <span className="text-gray-400">{isOpen ? "−" : "+"}</span>
-                              </button>
-                              {isOpen && (
-                                <div className="px-4 pb-4">
-                                  <p className="text-sm text-gray-600 leading-relaxed mb-3">{topic.content}</p>
-                                  <div className="bg-gray-50 rounded p-3">
-                                    <div className="text-xs font-medium text-gray-500 mb-2">核心要点</div>
-                                    <ul className="space-y-1">
-                                      {topic.keyPoints.map((kp, ki) => (
-                                        <li key={ki} className="text-sm text-gray-700 flex gap-2">
-                                          <span className="text-blue-500 flex-shrink-0">•</span>
-                                          {kp}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {/* Milestone */}
-                        <div className="mt-2 px-4 py-3 bg-green-50 border border-green-100 rounded-lg">
-                          <span className="text-xs font-medium text-green-700">阶段里程碑：</span>
-                          <span className="text-sm text-green-800 ml-1">{stage.milestone}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="prose prose-gray max-w-none
+              prose-headings:font-bold prose-headings:text-gray-900
+              prose-h1:text-2xl prose-h2:text-xl prose-h2:border-b prose-h2:border-gray-200 prose-h2:pb-2
+              prose-h3:text-lg prose-h3:text-blue-700
+              prose-h4:text-base prose-h4:text-gray-800
+              prose-p:text-gray-700 prose-p:leading-relaxed
+              prose-li:text-gray-700
+              prose-strong:text-gray-900
+              prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+              prose-blockquote:border-blue-300 prose-blockquote:bg-blue-50 prose-blockquote:rounded
+              prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-code:text-sm
+              prose-hr:border-gray-200">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
             </div>
           )}
         </div>
@@ -207,7 +168,7 @@ export default function SubjectPage({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-gray-500 mb-4">
-                以下为名校开放课件和权威教材，AI 生成学习路径时参考这些资源。点击链接直接访问原始材料。
+                以下为名校开放课件和权威教材链接，AI 生成学习指南时以这些课程体系为参考。
               </p>
               {openResources.map((r, i) => (
                 <a

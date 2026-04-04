@@ -4,7 +4,7 @@ import type { OpenResource } from "./subjects";
 async function fetchPageText(url: string, maxChars = 4000): Promise<string> {
   try {
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; self-growth-bot/1.0)",
         "Accept-Language": "en-US,en;q=0.9",

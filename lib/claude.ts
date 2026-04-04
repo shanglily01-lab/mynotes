@@ -11,8 +11,32 @@ async function ask(prompt: string, maxTokens = 1024, jsonMode = false): Promise<
       ...(jsonMode ? { responseMimeType: "application/json" } : {}),
     },
   });
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+
+  const maxRetries = 5;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err);
+      const isNetworkErr =
+        msg.includes("fetch failed") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("ECONNREFUSED") ||
+        msg.includes("socket hang up");
+      if (isNetworkErr && attempt < maxRetries) {
+        const wait = attempt * 3000;
+        console.warn(`[claude] attempt ${attempt} network error, retrying in ${wait / 1000}s...`);
+        await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
 }
 
 // 生成文章中文摘要（约200字）
@@ -183,84 +207,62 @@ ${prompt}`,
   }
 }
 
-export interface RoadmapStage {
-  stage: string;         // 阶段名称，如"入门"、"进阶"、"高级"
-  duration: string;      // 预计时长，如"1-2个月"
-  goal: string;          // 阶段目标
-  topics: {
-    title: string;       // 主题名
-    content: string;     // 详细讲解（300-500字）
-    keyPoints: string[]; // 核心要点（3-5条）
-  }[];
-  milestone: string;     // 里程碑：完成本阶段后能做什么
-}
-
-export interface SubjectRoadmap {
-  overview: string;      // 学科概述（200字）
-  whyLearn: string;      // 为什么学（100字）
-  stages: RoadmapStage[];
-}
-
+// 为学科生成完整的经典著作与基础教程 Markdown 文档
 export async function generateSubjectMaterial(
   subjectName: string,
-  foundations: string[],
-  resources: { title: string; url: string; description: string; content: string }[] = []
-): Promise<SubjectRoadmap> {
+  foundations: string[]
+): Promise<string> {
   const foundationList = foundations.map((f, i) => `${i + 1}. ${f}`).join("\n");
 
-  const resourceSection =
-    resources.length > 0
-      ? `\n\n以下是来自名校开放课件和权威教材的真实内容摘录，请基于这些内容生成学习材料：\n\n` +
-        resources
-          .map(
-            (r) =>
-              `【${r.title}】\n来源：${r.url}\n说明：${r.description}\n内容摘录：\n${r.content.slice(0, 2000)}`
-          )
-          .join("\n\n---\n\n")
-      : "";
-
   const text = await ask(
-    `你是一位资深教育专家。请为"${subjectName}"学科生成一份完整的系统性学习资料和成长路径。${resourceSection}
+    `你是一位资深教育专家，精通${subjectName}领域。请生成一份完整的《${subjectName}学习指南》Markdown 文档。
 
-学科基础主题大纲：
+基础主题大纲参考：
 ${foundationList}
 
-要求：
-- 生成3个学习阶段（入门→进阶→高级），每个阶段3-4个核心主题
-- 每个主题详细讲解300-500字，包含概念解释、原理推导、具体示例
-- 内容要忠实于名校教材的知识体系，深度适合自学
-- 推荐名校资源中的具体章节或视频
+文档结构要求（严格按此输出 Markdown）：
 
-只返回JSON，不要其他文字：
-{
-  "overview": "学科概述200字以内",
-  "whyLearn": "为什么要学这门学科100字以内",
-  "stages": [
-    {
-      "stage": "入门阶段",
-      "duration": "预计学习时长",
-      "goal": "本阶段学习目标",
-      "topics": [
-        {
-          "title": "主题名称",
-          "content": "详细讲解300-500字，包括概念、原理、实例",
-          "keyPoints": ["核心要点1", "核心要点2", "核心要点3"]
-        }
-      ],
-      "milestone": "完成本阶段后你能做什么/达到什么水平"
-    }
-  ]
-}`,
-    16384,
-    true
+# ${subjectName}学习指南
+
+## 一、学科概述
+（200字，说明这门学科是什么、研究什么、与哪些领域相关）
+
+## 二、为什么要学
+（100字，学习价值和应用场景）
+
+## 三、经典著作与权威教材
+列出5-8本最重要的经典著作，每本包含：
+- **书名**（作者，出版年）
+- 一句话说明为何是经典、适合哪个阶段阅读
+
+## 四、学习路径
+
+### 第一阶段：入门（建议1-2个月）
+**阶段目标：**（一句话）
+
+逐一讲解3个入门主题，每个主题包含：
+#### 主题名称
+- 核心概念讲解（200字）
+- 关键要点列表
+- 推荐阅读章节
+
+**阶段里程碑：** 完成后能做什么
+
+### 第二阶段：进阶（建议2-3个月）
+（同上，3个进阶主题）
+
+### 第三阶段：深入（建议3-6个月）
+（同上，3个深入主题）
+
+## 五、学习资源推荐
+- 免费公开课（MIT OCW、Coursera、B站等）
+- 在线工具和实践平台
+- 社区和论坛
+
+只输出 Markdown 正文，不要加任何额外说明。`,
+    12288
   );
 
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("no JSON");
-    return JSON.parse(jsonMatch[0]) as SubjectRoadmap;
-  } catch (err) {
-    console.error("generateSubjectMaterial parse error:", err);
-    throw err;
-  }
+  // 清理可能的 markdown 代码块包裹
+  return text.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
 }
