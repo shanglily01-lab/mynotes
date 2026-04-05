@@ -207,6 +207,201 @@ ${prompt}`,
   }
 }
 
+export interface DailyEnglishRaw {
+  topic: string;
+  articleEn: string;
+  articleZh: string;
+  vocabulary: { word: string; phonetic: string; meaning: string; example: string }[];
+  phrases: { phrase: string; meaning: string; example: string; exampleZh: string }[];
+}
+
+// 生成每日英语内容
+export async function generateDailyEnglish(): Promise<DailyEnglishRaw> {
+  const topics = [
+    "workplace communication", "travel and adventure", "technology and innovation",
+    "health and wellness", "food and culture", "environment and sustainability",
+    "relationships and social life", "science and discovery", "arts and creativity",
+    "personal growth and mindset",
+  ];
+  const topic = topics[new Date().getDay() % topics.length]!;
+
+  const text = await ask(
+    `You are an English teacher creating daily learning content for Chinese intermediate learners.
+Generate content about the topic: "${topic}".
+
+Return JSON only, no other text:
+{
+  "topic": "${topic}",
+  "articleEn": "A natural, engaging article of 180-220 words. Use vivid language, one short anecdote or example. Avoid overly formal tone.",
+  "articleZh": "对应的中文翻译，自然流畅，不要逐字直译",
+  "vocabulary": [
+    { "word": "word", "phonetic": "/fəˈnetɪk/", "meaning": "中文释义", "example": "Natural example sentence from or related to the article." }
+  ],
+  "phrases": [
+    { "phrase": "common phrase", "meaning": "中文意思", "example": "Example sentence using this phrase.", "exampleZh": "中文翻译" }
+  ]
+}
+
+Requirements:
+- vocabulary: 6 words, chosen from the article, with IPA phonetics
+- phrases: 6 common expressions or collocations relevant to the topic
+- All examples must be natural, conversational English`,
+    4096,
+    true
+  );
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("no JSON in response");
+    return JSON.parse(jsonMatch[0]) as DailyEnglishRaw;
+  } catch (err) {
+    console.error("generateDailyEnglish parse error:", err, text.slice(0, 200));
+    throw err;
+  }
+}
+
+// 根据书名和作者生成书籍深度精读笔记 Markdown（分两次生成后合并）
+export async function generateBookNote(
+  title: string,
+  author: string,
+  subjectName: string
+): Promise<string> {
+  const clean = (s: string) =>
+    s.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+  // 第一次：书籍背景 + 逐章节深度解析
+  const part1 = await ask(
+    `你是一位精通${subjectName}领域的资深学者，请为《${title}》（作者：${author || "未知"}）生成深度精读笔记的第一部分，格式为 Markdown，内容要详尽、有深度，不要泛泛而谈。
+
+只输出以下内容，不要加代码块包裹：
+
+# 《${title}》深度精读笔记
+
+**作者：** ${author || "未知"}
+**学科：** ${subjectName}
+
+## 核心主张
+
+用 2-3 段深入阐述本书的核心论点、写作目的和主要贡献，说明它解决了什么问题、提出了什么框架。
+
+## 作者与成书背景
+
+详细介绍作者的学术背景、本书写作的历史背景和动机（2-3 段）。
+
+## 全书结构概览
+
+按本书实际章节结构，列出各部分/章节的标题和核心内容（每章 1-2 句话）。
+
+## 核心章节深度解析
+
+针对本书最重要的 5-6 个章节或主题，每个用以下格式展开：
+
+### [章节/主题名称]
+
+**核心问题：** 本章试图回答什么问题？
+
+用 4-6 段自然段深入讲解本章的核心内容，包括：主要论点、关键机制、具体案例或实验、与其他章节的关联。内容要足够详细，让读者无需看原书就能理解这一章的精髓。`,
+    16000
+  );
+
+  // 第二次：概念体系 + 批判分析 + 实践应用
+  const part2 = await ask(
+    `你是一位精通${subjectName}领域的资深学者，请为《${title}》（作者：${author || "未知"}）生成深度精读笔记的第二部分，格式为 Markdown，内容要详尽实用。
+
+只输出以下内容，不要加代码块包裹，不要重复书名标题：
+
+## 核心概念体系
+
+列出本书 8-12 个最重要的概念/理论，每个格式：
+
+**[概念名称]**
+详细解释这个概念的定义、来源、核心含义，以及它在本书论证体系中的作用（3-5 句话）。
+
+## 经典论点与原文精华
+
+列出 5-7 个本书最具代表性的论点、实验或案例，每条格式：
+
+**[论点/实验名称]**
+详细说明其内容、论证方式和意义（3-4 句话）。
+
+## 方法论与实践应用
+
+本书提供了哪些可以实际应用的方法、框架或工具？如何在现实中运用？（3-4 段）
+
+## 对${subjectName}领域的历史地位
+
+详细说明本书在学科史上的地位、对后续研究的影响、引发的争论（2-3 段）。
+
+## 批判性分析
+
+### 局限与争议
+本书存在哪些局限性、被批评的观点或争议？（2-3 段）
+
+### 延伸思考
+提出 3-5 个深层问题，引导读者进一步思考。
+
+## 学习路径建议
+
+**阅读前推荐：** 列出 2-3 本适合先读的基础书目。
+**配合阅读：** 列出 2-3 本可以同期阅读的相关书目。
+**深入后续：** 列出 2-3 本读完本书后的进阶书目。`,
+    16000
+  );
+
+  return `${clean(part1)}\n\n---\n\n${clean(part2)}`;
+}
+
+// 为学科生成经典现象与案例 Markdown 文档
+export async function generateSubjectCases(
+  subjectName: string,
+  subjectId: string
+): Promise<string> {
+  const clean = (s: string) =>
+    s.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+  const domainNote: Record<string, string> = {
+    psychology:  "心理学实验与效应：如巴甫洛夫条件反射、斯坦福监狱实验、旁观者效应、认知失调等",
+    biology:     "生物学经典发现与实验：如孟德尔豌豆实验、DNA双螺旋、进化论证据、CRISPR基因编辑等",
+    physics:     "物理学经典实验与现象：如双缝干涉、卢瑟福散射、迈克尔逊-莫雷实验、光电效应、薛定谔的猫等",
+    sociology:   "社会学经典研究与社会现象：如涂尔干自杀研究、霍桑效应、破窗理论、斯坦福监狱实验、马太效应等",
+    ai:          "AI 领域里程碑事件与经典案例：如图灵测试、AlphaGo、GPT系列、ImageNet时刻、提示注入攻击等",
+    philosophy:  "哲学经典思想实验与论证：如芝诺悖论、柏拉图洞穴比喻、笛卡尔恶魔假说、电车难题、中文房间论证、缸中大脑等",
+    theology:    "神学经典论证与历史事件：如安瑟伦本体论证明、阿奎那五路论证、恶的问题、宗教改革、宗教经验与神秘主义等",
+  };
+
+  const hint = domainNote[subjectId] ?? `${subjectName}领域的经典现象、实验和案例`;
+
+  const prompt = `你是一位精通${subjectName}的学者，请整理一份《${subjectName}经典现象与案例》Markdown 文档。
+
+覆盖范围：${hint}
+
+要求：
+- 选取 12-15 个最具代表性、最常被引用的经典现象/实验/案例
+- 每个案例包含：发现背景、核心内容（含关键数据或结论）、深远意义、与其他概念的联系
+- 语言精炼，每个案例 200-300 字，有深度不泛泛
+- 按主题或时间线分成 3-4 个小节，使结构清晰
+- 只输出 Markdown 正文，不要加代码块包裹
+
+格式示例（严格遵守，用于每个案例）：
+
+### 案例名称
+
+**发现者 / 年代：** xxx
+
+**背景：** 一两句说明研究背景或问题背景。
+
+**核心内容：** 2-4 段详细描述实验/现象的过程、关键数据、结论。
+
+**意义与影响：** 1-2 段说明对该学科的影响，是否引发争议或后续研究。
+
+**延伸联系：** 与哪些概念/理论/其他案例有关联。
+
+---`;
+
+  const text = await ask(prompt, 12288);
+  return clean(text);
+}
+
 // 为学科生成完整的经典著作与基础教程 Markdown 文档
 export async function generateSubjectMaterial(
   subjectName: string,

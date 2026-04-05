@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:       #f5f2eb;
+  --surface:  #ffffff;
+  --text:     #1c1a16;
+  --text-2:   #5a5550;
+  --text-3:   #9a9590;
+  --border:   #d8d4ca;
+  --rule:     #e4e0d8;
+  --accent:   #003087;
+  --accent-h: #00256a;
+  --accent-s: #eef1f8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-body), Georgia, serif;
+  --font-serif: var(--font-playfair), Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  font-size: 15px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body, Georgia, serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-playfair, Georgia, serif);
+}
+
+/* Academic prose overrides */
+.prose-academic {
+  font-family: var(--font-body, Georgia, serif);
+  line-height: 1.8;
+  color: var(--text);
+}
+.prose-academic h1,
+.prose-academic h2,
+.prose-academic h3 {
+  font-family: var(--font-playfair, Georgia, serif);
+}
+
+/* Safe area for notched phones */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }

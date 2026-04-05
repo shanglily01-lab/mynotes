@@ -1,0 +1,18 @@
+{
+  "name": "自我成长学习平台",
+  "short_name": "自我成长",
+  "description": "心理学、生物学、物理学、社会学、AI日报、哲学、神学 — 每日学习，每周考试",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable any"
+    }
+  ]
+}

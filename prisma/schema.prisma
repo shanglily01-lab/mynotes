@@ -99,3 +99,32 @@ model Progress {
   @@unique([subjectId, weekStart])
   @@index([weekStart])
 }
+
+model DailyEnglish {
+  id         String   @id @default(cuid())
+  date       DateTime @unique @db.Date
+  topic      String   @db.VarChar(200)
+  articleEn  String   @db.Text
+  articleZh  String   @db.Text
+  vocabulary String   @db.Text  // JSON: [{word, phonetic, meaning, example}]
+  phrases    String   @db.Text  // JSON: [{phrase, meaning, example, exampleZh}]
+  createdAt  DateTime @default(now())
+}
+
+model BookDownload {
+  id        String   @id @default(cuid())
+  subjectId String
+  title     String   @db.VarChar(500)
+  author    String?  @db.VarChar(300)
+  filePath  String?  @db.VarChar(500)
+  md5       String?  @db.Char(32)
+  extension String?  @db.VarChar(10)
+  status    String   @default("pending") // pending | downloading | done | failed
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectId, title])
+  @@index([subjectId])
+  @@index([status])
+}

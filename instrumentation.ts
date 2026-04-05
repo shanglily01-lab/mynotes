@@ -6,7 +6,7 @@ export async function register() {
 
   // 每天 UTC 0点（北京时间 8点）拉取内容并生成当日计划
   cron.schedule("0 0 * * *", async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3010";
     console.log(`[cron] ${new Date().toISOString()} - starting daily fetch`);
 
     try {
@@ -23,6 +23,14 @@ export async function register() {
       console.log("[cron] plan/generate done, cached:", planData.cached);
     } catch (e) {
       console.error("[cron] plan/generate failed:", e);
+    }
+
+    try {
+      const engRes = await fetch(`${baseUrl}/api/english`, { method: "POST" });
+      const engData = (await engRes.json()) as { ok?: boolean; topic?: string };
+      console.log("[cron] english/generate done, topic:", engData.topic);
+    } catch (e) {
+      console.error("[cron] english/generate failed:", e);
     }
   });
 

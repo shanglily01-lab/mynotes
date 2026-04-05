@@ -19,6 +19,13 @@ interface Exam {
   questions: ExamQuestion[];
 }
 
+function getWeekLabel(dateStr: string) {
+  const d = new Date(dateStr);
+  const start = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d.getTime() - start.getTime()) / 86400000 + start.getDay() + 1) / 7);
+  return `${d.getFullYear()} 年第 ${week} 周`;
+}
+
 export default function ExamPage() {
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,26 +41,18 @@ export default function ExamPage() {
     const d = await r.json();
     if (d.exam) {
       setExam(d.exam);
-      // 初始化已有答案
-      const existingAnswers: Record<string, string> = {};
-      let hasAllAnswers = true;
+      const existing: Record<string, string> = {};
+      let allAnswered = true;
       for (const q of d.exam.questions as ExamQuestion[]) {
-        if (q.userAns) {
-          existingAnswers[q.id] = q.userAns.answer;
-        } else {
-          hasAllAnswers = false;
-        }
+        if (q.userAns) existing[q.id] = q.userAns.answer;
+        else allAnswered = false;
       }
-      setAnswers(existingAnswers);
-      if (hasAllAnswers && d.exam.questions.length > 0) {
-        setSubmitted(true);
-      }
+      setAnswers(existing);
+      if (allAnswered && d.exam.questions.length > 0) setSubmitted(true);
     }
   }
 
-  useEffect(() => {
-    loadExam().finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { loadExam().finally(() => setLoading(false)); }, []);
 
   async function handleGenerate() {
     setGenerating(true);
@@ -62,145 +61,149 @@ export default function ExamPage() {
       const res = await fetch("/api/exam/generate", { method: "POST" });
       const data = await res.json();
       if (data.ok) {
-        setMessage(data.cached ? "本周考试已存在" : "考试生成成功");
+        setMessage(data.cached ? "本周考试已存在" : "生成成功");
         await loadExam();
-      } else {
-        setMessage("生成失败: " + (data.error as string));
-      }
-    } catch {
-      setMessage("生成失败");
-    } finally {
-      setGenerating(false);
-    }
+      } else { setMessage("生成失败: " + (data.error as string)); }
+    } catch { setMessage("生成失败"); }
+    finally { setGenerating(false); }
   }
 
   async function handleSubmit() {
     if (!exam) return;
-    const answerList = Object.entries(answers).map(([questionId, answer]) => ({
-      questionId,
-      answer,
-    }));
-
     setMessage("提交中...");
     try {
       const res = await fetch("/api/exam/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: exam.id, answers: answerList }),
+        body: JSON.stringify({
+          examId: exam.id,
+          answers: Object.entries(answers).map(([questionId, answer]) => ({ questionId, answer })),
+        }),
       });
       const data = await res.json();
       if (data.ok) {
         setScores(data.scores as Record<string, { correct: number; total: number }>);
         setEvaluations(data.evaluations as Record<string, string>);
         setSubmitted(true);
-        setMessage("提交成功");
+        setMessage("");
         await loadExam();
-      } else {
-        setMessage("提交失败");
-      }
-    } catch {
-      setMessage("提交失败");
-    }
+      } else { setMessage("提交失败"); }
+    } catch { setMessage("提交失败"); }
   }
 
   const answeredCount = Object.keys(answers).length;
   const totalCount = exam?.questions.length ?? 0;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">本周考试</h1>
-          {exam && !submitted && (
-            <p className="text-sm text-gray-500 mt-1">
-              已答 {answeredCount}/{totalCount} 题
-            </p>
-          )}
+    <div className="space-y-7">
+      {/* Header */}
+      <div className="border-b border-[#d8d4ca] pb-5">
+        <p className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-1">
+          {exam ? getWeekLabel(exam.weekStart) : "本周"}
+        </p>
+        <div className="flex items-end justify-between">
+          <h1
+            className="text-3xl font-bold text-[#1c1a16]"
+            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+          >
+            每周考试
+          </h1>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="px-4 py-1.5 text-[13px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors disabled:opacity-40"
+          >
+            {generating ? "生成中..." : "生成/刷新"}
+          </button>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-        >
-          {generating ? "生成中..." : "生成/刷新考试"}
-        </button>
+        {exam && !submitted && (
+          <p className="text-[12px] text-[#9a9590] mt-2">已答 {answeredCount} / {totalCount} 题</p>
+        )}
       </div>
 
       {message && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          {message}
-        </div>
+        <p className="text-[13px] text-[#003087] border-l-2 border-[#003087] pl-3">{message}</p>
       )}
 
+      {/* Results */}
       {submitted && Object.keys(scores).length > 0 && (
-        <div className="mb-6 p-5 bg-white border border-gray-200 rounded-lg">
-          <h2 className="font-bold text-lg mb-3">考试结果</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-            {Object.entries(scores).map(([subject, s]) => (
-              <div key={subject} className="text-center p-3 bg-gray-50 rounded">
-                <div className="text-sm text-gray-500">{subject}</div>
-                <div className="text-xl font-bold text-blue-700">
-                  {s.correct}/{s.total}
-                </div>
-              </div>
-            ))}
+        <div className="border border-[#d8d4ca] bg-white">
+          <div className="px-5 py-3 border-b border-[#e4e0d8]">
+            <h2
+              className="text-[16px] font-bold text-[#1c1a16]"
+              style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+            >
+              考试结果
+            </h2>
           </div>
-          {Object.keys(evaluations).length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-2 text-gray-700">AI 评估</h3>
-              <div className="space-y-2">
+          <div className="px-5 py-4">
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+              {Object.entries(scores).map(([subject, s]) => {
+                const pct = Math.round((s.correct / s.total) * 100);
+                return (
+                  <div key={subject} className="text-center border border-[#e4e0d8] py-3">
+                    <p className="text-[10px] tracking-wide uppercase text-[#9a9590] mb-1">{subject}</p>
+                    <p
+                      className="text-xl font-bold text-[#1c1a16]"
+                      style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+                    >
+                      {pct}<span className="text-sm font-normal text-[#9a9590]">%</span>
+                    </p>
+                    <p className="text-[11px] text-[#9a9590]">{s.correct}/{s.total}</p>
+                  </div>
+                );
+              })}
+            </div>
+            {Object.keys(evaluations).length > 0 && (
+              <div className="border-t border-[#e4e0d8] pt-4 space-y-2">
+                <p className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-2">AI 学习建议</p>
                 {Object.entries(evaluations).map(([subject, eval_]) => (
-                  <div key={subject} className="p-3 bg-yellow-50 rounded border border-yellow-100">
-                    <span className="font-medium text-gray-700">{subject}：</span>
-                    <span className="text-sm text-gray-600">{eval_}</span>
+                  <div key={subject} className="text-[13px] text-[#5a5550] border-l-2 border-[#d8d4ca] pl-3 py-0.5">
+                    <span className="font-semibold text-[#1c1a16]">{subject}：</span>{eval_}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-20 text-gray-400">加载中...</div>
+        <p className="text-[13px] text-[#9a9590] italic py-10 text-center">加载中...</p>
       ) : !exam ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 mb-4">本周还没有考试题</p>
+        <div className="text-center py-16 border border-dashed border-[#d8d4ca]">
+          <p className="text-[14px] text-[#9a9590] italic mb-4">本周尚无考试题</p>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-6 py-2 text-[13px] bg-[#003087] text-white hover:bg-[#00256a] disabled:opacity-40"
           >
             立即生成
           </button>
         </div>
       ) : (
-        <div>
-          <div className="space-y-4">
-            {exam.questions.map((q, i) => (
-              <QuestionCard
-                key={q.id}
-                index={i}
-                subject={q.subject}
-                question={q.question}
-                options={typeof q.options === "string" ? JSON.parse(q.options) : q.options}
-                selectedAnswer={answers[q.id] ?? null}
-                correctAnswer={submitted ? q.answer : undefined}
-                explain={submitted ? q.explain : undefined}
-                submitted={submitted}
-                onSelect={(ans) =>
-                  setAnswers((prev) => ({ ...prev, [q.id]: ans }))
-                }
-              />
-            ))}
-          </div>
+        <div className="space-y-3">
+          {exam.questions.map((q, i) => (
+            <QuestionCard
+              key={q.id}
+              index={i}
+              subject={q.subject}
+              question={q.question}
+              options={typeof q.options === "string" ? JSON.parse(q.options) : q.options}
+              selectedAnswer={answers[q.id] ?? null}
+              correctAnswer={submitted ? q.answer : undefined}
+              explain={submitted ? q.explain : undefined}
+              submitted={submitted}
+              onSelect={(ans) => setAnswers((prev) => ({ ...prev, [q.id]: ans }))}
+            />
+          ))}
 
           {!submitted && (
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 onClick={handleSubmit}
                 disabled={answeredCount < totalCount}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-2 text-[13px] bg-[#003087] text-white hover:bg-[#00256a] disabled:opacity-40"
               >
                 提交答案（{answeredCount}/{totalCount}）
               </button>

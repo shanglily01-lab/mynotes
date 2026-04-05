@@ -29,13 +29,11 @@ export default function PlanPage() {
     setPlan(d.plan ?? null);
   }
 
-  useEffect(() => {
-    loadPlan().finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { loadPlan().finally(() => setLoading(false)); }, []);
 
   async function handleGenerate() {
     setGenerating(true);
-    setMessage("正在生成计划...");
+    setMessage("正在生成...");
     try {
       const res = await fetch("/api/plan/generate", { method: "POST" });
       const data = await res.json();
@@ -45,11 +43,8 @@ export default function PlanPage() {
       } else {
         setMessage("生成失败: " + (data.error as string));
       }
-    } catch {
-      setMessage("生成失败");
-    } finally {
-      setGenerating(false);
-    }
+    } catch { setMessage("生成失败"); }
+    finally { setGenerating(false); }
   }
 
   async function handleToggle(itemId: string, done: boolean) {
@@ -58,59 +53,72 @@ export default function PlanPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId, done }),
     });
-    setPlan((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        items: prev.items.map((i) => (i.id === itemId ? { ...i, done } : i)),
-      };
-    });
+    setPlan((prev) => prev ? {
+      ...prev,
+      items: prev.items.map((i) => i.id === itemId ? { ...i, done } : i),
+    } : prev);
   }
 
   const doneCount = plan?.items.filter((i) => i.done).length ?? 0;
   const totalCount = plan?.items.length ?? 0;
+  const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">今日学习计划</h1>
-          {plan && (
-            <p className="text-sm text-gray-500 mt-1">
-              已完成 {doneCount}/{totalCount} 项
-            </p>
-          )}
-        </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {generating ? "生成中..." : "生成/刷新计划"}
-        </button>
-      </div>
-
-      {message && (
-        <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-          {message}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-20 text-gray-400">加载中...</div>
-      ) : !plan ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 mb-4">今日还没有学习计划</p>
+    <div className="space-y-7">
+      {/* Header */}
+      <div className="border-b border-[#d8d4ca] pb-5">
+        <p className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-1">
+          {new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
+        <div className="flex items-end justify-between">
+          <h1
+            className="text-3xl font-bold text-[#1c1a16]"
+            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+          >
+            今日学习计划
+          </h1>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-1.5 text-[13px] bg-[#003087] text-white hover:bg-[#00256a] transition-colors disabled:opacity-40"
+          >
+            {generating ? "生成中..." : "生成/刷新"}
+          </button>
+        </div>
+
+        {/* Progress */}
+        {plan && totalCount > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between text-[11px] text-[#9a9590] uppercase tracking-wide mb-1.5">
+              <span>完成进度</span>
+              <span>{doneCount} / {totalCount} &nbsp;({pct}%)</span>
+            </div>
+            <div className="h-0.5 bg-[#e4e0d8]">
+              <div className="h-full bg-[#003087] transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {message && (
+        <p className="text-[13px] text-[#003087] border-l-2 border-[#003087] pl-3">{message}</p>
+      )}
+
+      {loading ? (
+        <p className="text-[13px] text-[#9a9590] italic py-10 text-center">加载中...</p>
+      ) : !plan ? (
+        <div className="text-center py-16 border border-dashed border-[#d8d4ca]">
+          <p className="text-[14px] text-[#9a9590] italic mb-4">今日尚无学习计划</p>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="px-6 py-2 text-[13px] bg-[#003087] text-white hover:bg-[#00256a] disabled:opacity-40"
           >
             立即生成
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {plan.items.map((item) => (
             <PlanCard
               key={item.id}

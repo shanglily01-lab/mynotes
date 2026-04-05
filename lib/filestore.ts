@@ -9,6 +9,7 @@ const DIRS = {
   exams: path.join(DATA_DIR, "exams"),
   progress: path.join(DATA_DIR, "progress"),
   materials: path.join(DATA_DIR, "materials"),
+  cases: path.join(DATA_DIR, "cases"),
 } as const;
 
 type StoreDir = keyof typeof DIRS;
@@ -29,6 +30,25 @@ export async function writeText(
 }
 
 export async function readText(filePath: string): Promise<string> {
+  try {
+    return await fs.readFile(filePath, "utf-8");
+  } catch {
+    return "";
+  }
+}
+
+export async function writeMarkdown(
+  category: StoreDir,
+  id: string,
+  content: string
+): Promise<string> {
+  await ensureDir(DIRS[category]);
+  const filePath = path.join(DIRS[category], `${id}.md`);
+  await fs.writeFile(filePath, content, "utf-8");
+  return filePath;
+}
+
+export async function readMarkdown(filePath: string): Promise<string> {
   try {
     return await fs.readFile(filePath, "utf-8");
   } catch {

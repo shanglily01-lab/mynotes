@@ -3,38 +3,127 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_ITEMS = [
-  { href: "/", label: "仪表盘" },
-  { href: "/plan", label: "今日计划" },
-  { href: "/exam", label: "每周考试" },
+const MAIN_NAV = [
+  { href: "/",         label: "仪表盘" },
+  { href: "/plan",     label: "今日计划" },
+  { href: "/exam",     label: "每周考试" },
   { href: "/progress", label: "学习进度" },
 ];
 
-export default function Navbar() {
+const SUBJECTS = [
+  { href: "/subjects/psychology", label: "心理学", color: "#6b2d6e" },
+  { href: "/subjects/biology",    label: "生物学", color: "#1a5c34" },
+  { href: "/subjects/physics",    label: "物理学", color: "#003087" },
+  { href: "/subjects/sociology",  label: "社会学", color: "#7a4018" },
+  { href: "/subjects/ai-news",    label: "AI 日报", color: "#1a5060" },
+  { href: "/subjects/philosophy", label: "哲学",   color: "#3a2870" },
+  { href: "/subjects/theology",   label: "神学",   color: "#7a1c30" },
+];
+
+const TOOLS = [
+  { href: "/english", label: "每日英语" },
+  { href: "/books",   label: "书籍笔记" },
+  { href: "/chat",    label: "AI 助手" },
+];
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[9px] tracking-[0.18em] uppercase text-[#9a9590] font-medium mb-1 px-2 mt-0.5">
+      {children}
+    </p>
+  );
+}
+
+function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`block text-[13px] px-2 py-1 mb-0.5 border-l-2 transition-colors ${
+        active
+          ? "border-[#003087] text-[#003087] font-semibold"
+          : "border-transparent text-[#5a5550] hover:text-[#1c1a16] hover:border-[#d8d4ca]"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto px-4 flex items-center h-14 gap-6">
-        <Link href="/" className="font-bold text-lg text-blue-700">
-          自我成长
+    <aside className="fixed left-0 top-0 h-screen w-[220px] bg-[#f5f2eb] border-r border-[#d8d4ca] flex flex-col z-40">
+      {/* Brand */}
+      <div className="px-5 py-5 border-b border-[#d8d4ca]">
+        <Link href="/" className="block">
+          <span
+            className="block text-[18px] font-bold leading-tight text-[#1c1a16]"
+            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+          >
+            自我成长
+          </span>
+          <span className="block text-[9px] tracking-[0.2em] uppercase text-[#9a9590] mt-0.5">
+            Scholar Notes
+          </span>
         </Link>
-        <div className="flex gap-1 ml-4">
-          {NAV_ITEMS.map((item) => (
-            <Link
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
+        <div>
+          <SectionLabel>导航</SectionLabel>
+          {MAIN_NAV.map((item) => (
+            <NavLink
               key={item.href}
               href={item.href}
-              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                pathname === item.href
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {item.label}
-            </Link>
+              label={item.label}
+              active={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
+            />
           ))}
         </div>
+
+        <div>
+          <SectionLabel>学科</SectionLabel>
+          {SUBJECTS.map((s) => {
+            const active = pathname === s.href || pathname.startsWith(s.href + "/");
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                className={`flex items-center gap-2 text-[13px] px-2 py-1 mb-0.5 border-l-2 transition-colors ${
+                  active
+                    ? "text-[#1c1a16] font-semibold"
+                    : "border-transparent text-[#5a5550] hover:text-[#1c1a16] hover:border-[#d8d4ca]"
+                }`}
+                style={active ? { borderColor: s.color } : undefined}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: s.color, opacity: active ? 1 : 0.6 }}
+                />
+                {s.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div>
+          <SectionLabel>工具</SectionLabel>
+          {TOOLS.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              active={pathname.startsWith(item.href)}
+            />
+          ))}
+        </div>
+      </nav>
+
+      <div className="px-5 py-3 border-t border-[#d8d4ca]">
+        <p className="text-[10px] text-[#9a9590] italic">每日学习 · 每周考试</p>
       </div>
-    </nav>
+    </aside>
   );
 }
