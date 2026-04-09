@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
 import { prisma } from "@/lib/db";
 import { generateBookNote } from "@/lib/claude";
 import { SUBJECTS } from "@/lib/subjects";
 
 export const maxDuration = 600;
-
-const BOOKS_DIR = path.join(process.cwd(), "data", "books");
 
 async function generateOne(bookId: string): Promise<{ done: boolean; error?: string }> {
   const book = await prisma.bookDownload.findUnique({ where: { id: bookId } });
@@ -24,22 +20,12 @@ async function generateOne(bookId: string): Promise<{ done: boolean; error?: str
 
     const markdown = await generateBookNote(book.title, book.author ?? "", subjectName);
 
-    const destDir = path.join(BOOKS_DIR, book.subjectId);
-    fs.mkdirSync(destDir, { recursive: true });
-
-    const safeTitle = book.title.replace(/[\\/:*?"<>|]/g, "_").trim().slice(0, 80);
-    const filename = `${safeTitle}.md`;
-    const filePath = path.join(destDir, filename);
-    fs.writeFileSync(filePath, markdown, "utf-8");
-
-    const relPath = filePath.replace(process.cwd() + path.sep, "").replace(/\\/g, "/");
-
     await prisma.bookDownload.update({
       where: { id: bookId },
-      data: { status: "done", filePath: relPath, extension: "md", error: null },
+      data: { status: "done", noteContent: markdown, error: null },
     });
 
-    console.log(`[books] generated: ${filename}`);
+    console.log(`[books] generated note for: ${book.title}`);
     return { done: true };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

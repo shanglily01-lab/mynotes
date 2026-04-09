@@ -189,7 +189,7 @@ export const SUBJECTS: SubjectConfig[] = [
   },
   {
     id: "ai",
-    name: "人工智能",
+    name: "AI 理论基础",
     icon: "cpu",
     rssFeeds: [
       { url: "https://export.arxiv.org/rss/cs.AI", name: "ArXiv cs.AI" },
@@ -233,6 +233,87 @@ export const SUBJECTS: SubjectConfig[] = [
         title: "Andrej Karpathy: Neural Networks Zero to Hero",
         url: "https://karpathy.ai/zero-to-hero.html",
         description: "Karpathy（前特斯拉 AI 总监）从零手写神经网络系列课程",
+      },
+    ],
+  },
+  {
+    id: "google-ai",
+    name: "Google AI 动态",
+    icon: "sparkles",
+    rssFeeds: [
+      { url: "https://blog.google/technology/ai/rss/", name: "Google AI Blog" },
+      { url: "https://deepmind.google/blog/rss.xml", name: "Google DeepMind Blog" },
+      { url: "https://research.google/blog/rss/", name: "Google Research Blog" },
+    ],
+    foundations: [
+      "Gemini 系列模型：架构演进、多模态能力、与 GPT 的对比",
+      "Google DeepMind：AlphaFold、AlphaStar、科学发现应用",
+      "TPU 与 AI 基础设施：张量处理单元、Pathways 分布式系统",
+      "Google Search AI：AI Overviews、NotebookLM、搜索增强",
+      "Vertex AI 平台：企业 AI 服务、微调、部署管道",
+      "Android AI 集成：Pixel 端侧推理、Google Assistant 演进",
+      "Google AI 安全：负责任 AI 原则、对抗样本、安全评估",
+    ],
+    openResources: [
+      {
+        title: "Google AI Blog",
+        url: "https://blog.google/technology/ai/",
+        description: "Google 官方 AI 博客：最新模型发布、研究成果、产品动态",
+      },
+      {
+        title: "Google DeepMind Research",
+        url: "https://deepmind.google/research/",
+        description: "DeepMind 研究主页：论文、项目和科学突破",
+      },
+      {
+        title: "Google AI for Developers",
+        url: "https://ai.google.dev/",
+        description: "Google AI 开发者平台：Gemini API 文档、教程和示例",
+      },
+      {
+        title: "Google Research Publications",
+        url: "https://research.google/pubs/",
+        description: "Google Research 论文库：可按主题筛选最新发表",
+      },
+    ],
+  },
+  {
+    id: "anthropic-ai",
+    name: "Anthropic AI 动态",
+    icon: "bot",
+    rssFeeds: [
+      { url: "https://www.anthropic.com/rss.xml", name: "Anthropic Blog" },
+      { url: "https://export.arxiv.org/rss/cs.AI", name: "ArXiv cs.AI" },
+    ],
+    foundations: [
+      "Claude 系列模型：Haiku / Sonnet / Opus 能力边界与适用场景",
+      "Constitutional AI（CAI）：规则引导的 RLHF 安全训练方法",
+      "AI 安全与对齐研究：可解释性、超级对齐、红队测试",
+      "Claude API 与 Artifacts：多轮对话、工具调用、代码生成",
+      "Model Spec：Claude 的价值观、诚实性与边界设计",
+      "Anthropic 经济影响报告：AI 对劳动力和创造性工作的影响",
+      "MCP（Model Context Protocol）：工具调用标准化协议",
+    ],
+    openResources: [
+      {
+        title: "Anthropic News & Research",
+        url: "https://www.anthropic.com/news",
+        description: "Anthropic 官方新闻：模型发布、研究论文、公司动态",
+      },
+      {
+        title: "Anthropic Research Papers",
+        url: "https://www.anthropic.com/research",
+        description: "Anthropic 研究主页：安全、对齐、可解释性论文",
+      },
+      {
+        title: "Claude Documentation",
+        url: "https://docs.anthropic.com/",
+        description: "Claude API 官方文档：使用指南、工具调用、提示工程",
+      },
+      {
+        title: "Anthropic Model Specification",
+        url: "https://www.anthropic.com/claude/model-spec",
+        description: "Claude 模型规范：设计原则、价值观与行为边界完整文档",
       },
     ],
   },
@@ -338,6 +419,104 @@ export const SUBJECTS: SubjectConfig[] = [
     ],
     foundations: [],
     openResources: [], // 新闻无需课本资源
+  },
+  {
+    id: "medicine",
+    name: "现代医学",
+    icon: "stethoscope",
+    rssFeeds: [
+      { url: "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss", name: "NEJM" },
+      { url: "https://www.thelancet.com/rssfeed/lancet_online.xml", name: "The Lancet" },
+      { url: "https://jamanetwork.com/rss/site_3/67.xml", name: "JAMA" },
+    ],
+    foundations: [
+      "解剖学：人体系统、器官结构、组织学基础",
+      "生理学：各系统功能机制、稳态调节、生理指标",
+      "病理学：疾病发生机制、炎症、肿瘤、细胞损伤",
+      "药理学：药物作用机制、药代动力学、药效学",
+      "微生物与免疫：细菌、病毒、真菌、免疫应答与疾病",
+      "内科学：心血管、呼吸、消化、内分泌等系统常见病",
+      "外科学基础：外科原则、无菌技术、手术适应症",
+      "诊断学：病史采集、体格检查、实验室与影像学解读",
+      "流行病学与公共卫生：疾病分布、预防策略、循证医学",
+      "临床研究方法：RCT 设计、Meta 分析、NNT/NNH 解读",
+    ],
+    openResources: [
+      {
+        title: "OpenStax Anatomy and Physiology 2e",
+        url: "https://openstax.org/books/anatomy-and-physiology-2e/pages/1-introduction",
+        description: "OpenStax 免费开放教材：解剖与生理学第二版",
+      },
+      {
+        title: "Khan Academy: Health and Medicine",
+        url: "https://www.khanacademy.org/science/health-and-medicine",
+        description: "可汗学院医学健康系列：心脏、肾脏、神经、免疫等系统深度讲解",
+      },
+      {
+        title: "NEJM Knowledge+",
+        url: "https://knowledgeplus.nejm.org/",
+        description: "NEJM 知识库：临床决策支持与医学知识自测平台",
+      },
+      {
+        title: "Cochrane Library",
+        url: "https://www.cochranelibrary.com/",
+        description: "Cochrane 系统评价库：循证医学最高质量证据来源",
+      },
+      {
+        title: "WHO: Evidence-Informed Policy Networks",
+        url: "https://www.who.int/evidence/resources/",
+        description: "WHO 循证医学资源：全球公共卫生指南与证据汇编",
+      },
+    ],
+  },
+  {
+    id: "diabetes",
+    name: "糖尿病管理",
+    icon: "heart-pulse",
+    rssFeeds: [
+      { url: "https://diabetesjournals.org/care/rss/site_1/1.xml", name: "Diabetes Care" },
+      { url: "https://www.diabetesselfmanagement.com/feed/", name: "Diabetes Self-Management" },
+      { url: "https://beyondtype1.org/feed/", name: "Beyond Type 1" },
+    ],
+    foundations: [
+      "糖尿病分型：1型、2型、妊娠期糖尿病及特殊类型的区别",
+      "血糖调节机制：胰岛素分泌、胰高血糖素作用、肝糖原代谢",
+      "诊断标准：空腹血糖、餐后2h血糖、HbA1c、OGTT 解读",
+      "饮食管理：血糖生成指数（GI）、碳水计数、地中海饮食",
+      "运动疗法：有氧运动、抗阻训练对血糖的影响与注意事项",
+      "药物治疗：二甲双胍、GLP-1 激动剂、SGLT-2 抑制剂、胰岛素",
+      "血糖监测：自我血糖监测、动态血糖仪（CGM）、TIR 解读",
+      "并发症预防：视网膜病变、肾病、神经病变、心血管风险",
+      "低血糖识别与处理：症状、急救、预防策略",
+      "心理与生活质量：糖尿病痛苦、自我管理支持、社会资源",
+    ],
+    openResources: [
+      {
+        title: "ADA Standards of Care in Diabetes 2024",
+        url: "https://diabetesjournals.org/care/issue/47/Supplement_1",
+        description: "美国糖尿病学会2024年糖尿病诊疗标准，全球最权威临床指南",
+      },
+      {
+        title: "CDC: Diabetes Prevention Program",
+        url: "https://www.cdc.gov/diabetes/prevention/index.html",
+        description: "美国疾控中心糖尿病预防计划，含生活方式干预资源",
+      },
+      {
+        title: "Diabetes UK: Learning Zone",
+        url: "https://www.diabetes.org.uk/guide-to-diabetes",
+        description: "英国糖尿病协会学习中心，涵盖饮食、运动、药物等实用指南",
+      },
+      {
+        title: "NIDDK: Diabetes Information",
+        url: "https://www.niddk.nih.gov/health-information/diabetes",
+        description: "美国国家糖尿病、消化和肾脏疾病研究所患者教育资料",
+      },
+      {
+        title: "IDF Diabetes Atlas",
+        url: "https://diabetesatlas.org/",
+        description: "国际糖尿病联合会全球数据地图，含流行病学数据与预防策略",
+      },
+    ],
   },
   {
     id: "english",

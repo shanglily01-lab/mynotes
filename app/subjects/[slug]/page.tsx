@@ -23,9 +23,14 @@ const SUBJECT_COLOR: Record<string, string> = {
   biology:     "#1a5c34",
   physics:     "#003087",
   sociology:   "#7a4018",
-  "ai-news":   "#1a5060",
   philosophy:  "#3a2870",
   theology:    "#7a1c30",
+  medicine:    "#1a5c4a",
+  diabetes:    "#8b1a1a",
+  news:        "#1a5060",
+  ai:          "#1a5060",
+  "google-ai": "#1a5060",
+  "anthropic-ai": "#5a3070",
 };
 
 export default function SubjectPage({

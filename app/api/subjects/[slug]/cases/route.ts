@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { getSubject } from "@/lib/subjects";
 import { generateSubjectCases } from "@/lib/claude";
-import { writeMarkdown, readMarkdown } from "@/lib/filestore";
-import path from "path";
-
-const DATA_DIR = path.join(process.cwd(), "data", "cases");
-
-function casesPath(slug: string) {
-  return path.join(DATA_DIR, `${slug}.md`);
-}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const content = await readMarkdown(casesPath(slug));
-  return NextResponse.json({ content: content || null });
+
+  const record = await prisma.subjectCases.findUnique({
+    where: { subjectId: slug },
+  });
+
+  return NextResponse.json({ content: record?.content ?? null });
 }
 
 export async function POST(
@@ -31,7 +28,12 @@ export async function POST(
     }
 
     const markdown = await generateSubjectCases(subject.name, slug);
-    await writeMarkdown("cases", slug, markdown);
+
+    await prisma.subjectCases.upsert({
+      where: { subjectId: slug },
+      create: { id: slug, subjectId: slug, content: markdown },
+      update: { content: markdown },
+    });
 
     return NextResponse.json({ ok: true, content: markdown });
   } catch (err) {

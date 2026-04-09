@@ -17,11 +17,18 @@ model Subject {
 }
 
 model SubjectMaterial {
-  id          String   @id @default(cuid())
-  subjectId   String   @unique
-  roadmapPath String   @db.VarChar(500)
-  updatedAt   DateTime @updatedAt
-  subject     Subject  @relation(fields: [subjectId], references: [id])
+  id        String   @id @default(cuid())
+  subjectId String   @unique
+  content   String?  @db.LongText
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+}
+
+model SubjectCases {
+  id        String   @id @default(cuid())
+  subjectId String   @unique
+  content   String   @db.LongText
+  updatedAt DateTime @updatedAt
 }
 
 model Article {
@@ -119,10 +126,11 @@ model BookDownload {
   filePath  String?  @db.VarChar(500)
   md5       String?  @db.Char(32)
   extension String?  @db.VarChar(10)
-  status    String   @default("pending") // pending | downloading | done | failed
-  error     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status      String   @default("pending") // pending | downloading | done | failed
+  noteContent String?  @db.LongText
+  error       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([subjectId, title])
   @@index([subjectId])

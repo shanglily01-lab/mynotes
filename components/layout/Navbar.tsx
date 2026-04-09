@@ -8,22 +8,25 @@ const MAIN_NAV = [
   { href: "/plan",     label: "今日计划" },
   { href: "/exam",     label: "每周考试" },
   { href: "/progress", label: "学习进度" },
+  { href: "/monthly",  label: "月度回顾" },
 ];
 
 const SUBJECTS = [
-  { href: "/subjects/psychology", label: "心理学", color: "#6b2d6e" },
-  { href: "/subjects/biology",    label: "生物学", color: "#1a5c34" },
-  { href: "/subjects/physics",    label: "物理学", color: "#003087" },
-  { href: "/subjects/sociology",  label: "社会学", color: "#7a4018" },
-  { href: "/subjects/ai-news",    label: "AI 日报", color: "#1a5060" },
-  { href: "/subjects/philosophy", label: "哲学",   color: "#3a2870" },
-  { href: "/subjects/theology",   label: "神学",   color: "#7a1c30" },
+  { href: "/subjects/psychology", label: "心理学",    color: "#6b2d6e" },
+  { href: "/subjects/biology",    label: "生物学",    color: "#1a5c34" },
+  { href: "/subjects/physics",    label: "物理学",    color: "#003087" },
+  { href: "/subjects/sociology",  label: "社会学",    color: "#7a4018" },
+  { href: "/subjects/philosophy", label: "哲学",      color: "#3a2870" },
+  { href: "/subjects/theology",   label: "神学",      color: "#7a1c30" },
+  { href: "/subjects/medicine",   label: "现代医学",  color: "#1a5c4a" },
+  { href: "/subjects/diabetes",   label: "糖尿病管理", color: "#8b1a1a" },
 ];
 
 const TOOLS = [
-  { href: "/english", label: "每日英语" },
-  { href: "/books",   label: "书籍笔记" },
-  { href: "/chat",    label: "AI 助手" },
+  { href: "/english",          label: "每日英语" },
+  { href: "/subjects/news",    label: "每日新闻" },
+  { href: "/books",            label: "书籍笔记" },
+  { href: "/chat",             label: "AI 助手" },
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -53,7 +56,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[220px] bg-[#f5f2eb] border-r border-[#d8d4ca] flex flex-col z-40">
+    <aside style={{ display: "flex", position: "fixed", left: 0, top: 0, height: "100vh", width: 220, zIndex: 40, flexDirection: "column", backgroundColor: "#f5f2eb", borderRight: "1px solid #d8d4ca" }}>
       {/* Brand */}
       <div className="px-5 py-5 border-b border-[#d8d4ca]">
         <Link href="/" className="block">

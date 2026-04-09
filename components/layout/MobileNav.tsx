@@ -12,19 +12,22 @@ const BOTTOM_TABS = [
 ];
 
 const DRAWER_NAV = [
-  { href: "/exam",     label: "每周考试" },
-  { href: "/progress", label: "学习进度" },
-  { href: "/books",    label: "书籍笔记" },
+  { href: "/exam",          label: "每周考试" },
+  { href: "/progress",      label: "学习进度" },
+  { href: "/monthly",       label: "月度回顾" },
+  { href: "/books",         label: "书籍笔记" },
+  { href: "/subjects/news", label: "每日新闻" },
 ];
 
 const DRAWER_SUBJECTS = [
-  { href: "/subjects/psychology", label: "心理学", color: "#6b2d6e" },
-  { href: "/subjects/biology",    label: "生物学", color: "#1a5c34" },
-  { href: "/subjects/physics",    label: "物理学", color: "#003087" },
-  { href: "/subjects/sociology",  label: "社会学", color: "#7a4018" },
-  { href: "/subjects/ai-news",    label: "AI 日报", color: "#1a5060" },
-  { href: "/subjects/philosophy", label: "哲学",   color: "#3a2870" },
-  { href: "/subjects/theology",   label: "神学",   color: "#7a1c30" },
+  { href: "/subjects/psychology", label: "心理学",    color: "#6b2d6e" },
+  { href: "/subjects/biology",    label: "生物学",    color: "#1a5c34" },
+  { href: "/subjects/physics",    label: "物理学",    color: "#003087" },
+  { href: "/subjects/sociology",  label: "社会学",    color: "#7a4018" },
+  { href: "/subjects/philosophy", label: "哲学",      color: "#3a2870" },
+  { href: "/subjects/theology",   label: "神学",      color: "#7a1c30" },
+  { href: "/subjects/medicine",   label: "现代医学",  color: "#1a5c4a" },
+  { href: "/subjects/diabetes",   label: "糖尿病",    color: "#8b1a1a" },
 ];
 
 export default function MobileNav() {
