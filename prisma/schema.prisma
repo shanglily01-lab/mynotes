@@ -118,6 +118,25 @@ model DailyEnglish {
   createdAt  DateTime @default(now())
 }
 
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String?       @db.VarChar(300)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  role      String      @db.VarChar(10)
+  content   String      @db.LongText
+  createdAt DateTime    @default(now())
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
 model BookDownload {
   id        String   @id @default(cuid())
   subjectId String

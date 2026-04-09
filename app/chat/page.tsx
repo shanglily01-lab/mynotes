@@ -9,6 +9,13 @@ interface Message {
   text: string;
 }
 
+interface Session {
+  id: string;
+  title: string | null;
+  updatedAt: string;
+  _count: { messages: number };
+}
+
 const SUGGESTIONS = [
   "巴甫洛夫条件反射和操作性条件反射有什么区别？",
   "量子纠缠是什么意思？能用类比解释吗？",
@@ -17,12 +24,55 @@ const SUGGESTIONS = [
   "涂尔干的社会事实论说的是什么？",
 ];
 
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "今天";
+  if (diffDays === 1) return "昨天";
+  if (diffDays < 7) return `${diffDays}天前`;
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load session list
+  const loadSessions = useCallback(async () => {
+    const res = await fetch("/api/chat/sessions");
+    const data = await res.json() as { sessions: Session[] };
+    setSessions(data.sessions ?? []);
+    return data.sessions ?? [];
+  }, []);
+
+  // Load a specific session's messages
+  const loadSession = useCallback(async (id: string) => {
+    const res = await fetch(`/api/chat/sessions/${id}`);
+    const data = await res.json() as { session: { messages: { role: string; content: string }[] } };
+    const msgs: Message[] = (data.session?.messages ?? []).map((m) => ({
+      role: m.role as "user" | "model",
+      text: m.content,
+    }));
+    setMessages(msgs);
+    setSessionId(id);
+    setShowHistory(false);
+  }, []);
+
+  // On mount: load last session if exists
+  useEffect(() => {
+    loadSessions().then((list) => {
+      if (list.length > 0 && list[0]) {
+        loadSession(list[0].id);
+      }
+    });
+  }, [loadSessions, loadSession]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -37,8 +87,23 @@ export default function ChatPage() {
       setMessages(nextMessages);
       setInput("");
       setStreaming(true);
-
       setMessages((prev) => [...prev, { role: "model", text: "" }]);
+
+      let currentSessionId = sessionId;
+
+      // Create session if needed
+      if (!currentSessionId) {
+        const res = await fetch("/api/chat/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: text.trim().slice(0, 80) }),
+        });
+        const data = await res.json() as { session: { id: string } };
+        currentSessionId = data.session.id;
+        setSessionId(currentSessionId);
+      }
+
+      let accumulated = "";
 
       try {
         const res = await fetch("/api/chat", {
@@ -51,7 +116,6 @@ export default function ChatPage() {
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let accumulated = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -64,19 +128,33 @@ export default function ChatPage() {
           });
         }
       } catch (err) {
+        accumulated = `请求失败：${String(err)}`;
         setMessages((prev) => {
           const next = [...prev];
-          next[next.length - 1] = {
-            role: "model",
-            text: `请求失败：${String(err)}`,
-          };
+          next[next.length - 1] = { role: "model", text: accumulated };
           return next;
         });
       } finally {
         setStreaming(false);
+
+        // Save both messages to DB
+        if (currentSessionId && accumulated) {
+          await fetch("/api/chat/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: currentSessionId,
+              messages: [
+                { role: "user", content: text.trim() },
+                { role: "model", content: accumulated },
+              ],
+            }),
+          });
+          loadSessions();
+        }
       }
     },
-    [messages, streaming]
+    [messages, streaming, sessionId, loadSessions]
   );
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -86,41 +164,101 @@ export default function ChatPage() {
     }
   }
 
-  function handleClear() {
+  function handleNewChat() {
     setMessages([]);
+    setSessionId(null);
+    setShowHistory(false);
+    textareaRef.current?.focus();
+  }
+
+  async function handleDeleteSession(id: string) {
+    await fetch(`/api/chat/sessions/${id}`, { method: "DELETE" });
+    const list = await loadSessions();
+    if (id === sessionId) {
+      if (list.length > 0 && list[0]) {
+        loadSession(list[0].id);
+      } else {
+        setMessages([]);
+        setSessionId(null);
+      }
+    }
   }
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100dvh - 120px)" }}>
       {/* Header */}
-      <div className="border-b border-[#d8d4ca] pb-5 mb-5 flex-shrink-0">
+      <div className="border-b border-[#d8d4ca] pb-4 mb-4 flex-shrink-0">
         <p className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-1">学科问答</p>
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between gap-2">
           <h1
             className="text-3xl font-bold text-[#1c1a16]"
             style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
           >
             AI 学习助手
           </h1>
-          {messages.length > 0 && (
+          <div className="flex gap-2 flex-shrink-0">
             <button
-              onClick={handleClear}
-              className="px-4 py-1.5 text-[13px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors"
+              onClick={() => setShowHistory((v) => !v)}
+              className={`px-3 py-1.5 text-[12px] border transition-colors ${
+                showHistory
+                  ? "border-[#003087] text-[#003087]"
+                  : "border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087]"
+              }`}
             >
-              清空对话
+              历史 {sessions.length > 0 && `(${sessions.length})`}
             </button>
-          )}
+            <button
+              onClick={handleNewChat}
+              className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors"
+            >
+              新对话
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* History panel */}
+      {showHistory && (
+        <div className="flex-shrink-0 mb-4 border border-[#d8d4ca] bg-white max-h-48 overflow-y-auto">
+          {sessions.length === 0 ? (
+            <p className="text-[12px] text-[#9a9590] px-4 py-3 italic">暂无历史对话</p>
+          ) : (
+            sessions.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between px-4 py-2.5 border-b border-[#e4e0d8] last:border-0 group hover:bg-[#f5f2eb] transition-colors ${
+                  s.id === sessionId ? "bg-[#f5f2eb]" : ""
+                }`}
+              >
+                <button
+                  onClick={() => loadSession(s.id)}
+                  className="flex-1 text-left min-w-0"
+                >
+                  <p className="text-[13px] text-[#1c1a16] truncate">
+                    {s.title ?? "无标题对话"}
+                  </p>
+                  <p className="text-[11px] text-[#9a9590]">
+                    {formatDate(s.updatedAt)} · {s._count.messages} 条消息
+                  </p>
+                </button>
+                <button
+                  onClick={() => handleDeleteSession(s.id)}
+                  className="ml-2 text-[11px] text-[#c0bab2] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                >
+                  删除
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-5 pb-4 min-h-0">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-6">
             <div className="text-center">
-              <div
-                className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-3"
-              >
+              <div className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-3">
                 随时提问，深入学习
               </div>
               <p
@@ -223,7 +361,7 @@ export default function ChatPage() {
           </button>
         </div>
         <p className="text-[11px] text-[#9a9590] mt-1.5 text-center">
-          由 Gemini 2.5 Flash 驱动 · 内容仅供学习参考
+          由 Gemini 2.5 Flash 驱动 · 对话自动保存
         </p>
       </div>
     </div>
