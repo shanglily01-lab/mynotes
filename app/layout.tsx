@@ -38,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN" className={`${playfair.variable} ${lora.variable} h-full`}>
       <body className="min-h-screen flex bg-[#f5f2eb]">
         <Sidebar />
-        <main className="flex-1 min-h-screen" style={{ marginLeft: 220 }}>
+        <main className="flex-1 min-h-screen md:ml-[220px]">
           <div className="max-w-3xl mx-auto px-5 md:px-10 py-8 md:py-10 pb-24 md:pb-10">
             {children}
           </div>

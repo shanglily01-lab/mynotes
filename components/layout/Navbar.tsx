@@ -56,7 +56,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside style={{ display: "flex", position: "fixed", left: 0, top: 0, height: "100vh", width: 220, zIndex: 40, flexDirection: "column", backgroundColor: "#f5f2eb", borderRight: "1px solid #d8d4ca" }}>
+    <aside className="hidden md:flex" style={{ position: "fixed", left: 0, top: 0, height: "100vh", width: 220, zIndex: 40, flexDirection: "column", backgroundColor: "#f5f2eb", borderRight: "1px solid #d8d4ca" }}>
       {/* Brand */}
       <div className="px-5 py-5 border-b border-[#d8d4ca]">
         <Link href="/" className="block">
