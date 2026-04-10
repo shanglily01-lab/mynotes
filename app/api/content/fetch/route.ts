@@ -34,6 +34,13 @@ export async function POST() {
           let count = 0;
           send(`[${subject.name}] 开始拉取...`);
 
+          // Ensure subject row exists before inserting articles
+          await prisma.subject.upsert({
+            where: { id: subject.id },
+            create: { id: subject.id, name: subject.name, icon: subject.icon },
+            update: { name: subject.name, icon: subject.icon },
+          });
+
           for (const feed of subject.rssFeeds) {
             send(`[${subject.name}] 正在抓取 ${feed.name}`);
             const items = await fetchRssFeed(feed.url, feed.name);

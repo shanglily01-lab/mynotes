@@ -80,6 +80,19 @@ export async function POST() {
     where: { date: today, items: { none: {} } },
   });
 
+  // Ensure all referenced subjects exist in Subject table
+  const usedSubjectIds = [...new Set(planItems.map((item) => item.subjectId))];
+  for (const subjectId of usedSubjectIds) {
+    const subject = SUBJECTS.find((s) => s.id === subjectId);
+    if (subject) {
+      await prisma.subject.upsert({
+        where: { id: subjectId },
+        create: { id: subjectId, name: subject.name, icon: subject.icon },
+        update: { name: subject.name, icon: subject.icon },
+      });
+    }
+  }
+
   // 创建计划和条目（先建记录，再写文件）
   const plan = await prisma.dailyPlan.create({
     data: {
