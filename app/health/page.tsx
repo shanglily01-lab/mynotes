@@ -40,6 +40,43 @@ function formatDate(iso: string) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+// ── 弹窗：图片预览 ───────────────────────────────────────────
+function PreviewModal({ title, src, onClose }: { title: string; src: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-[92vw] max-h-[90vh] flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute -top-8 right-0 text-white/70 hover:text-white text-lg leading-none"
+        >
+          ✕
+        </button>
+        <p className="text-white/60 text-[11px] mb-2 self-start truncate max-w-full">{title}</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={title}
+          className="max-w-full max-h-[82vh] object-contain"
+          style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── 弹窗：AI 分析报告 ──────────────────────────────────────
 function AnalysisModal({
   title,
@@ -142,6 +179,7 @@ function RecordCard({
   const [summary, setSummary] = useState(record.aiSummary ?? "");
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const analyzed = useRef(false);
 
   const color = TYPE_COLORS[record.type] ?? "#5a5550";
@@ -206,16 +244,13 @@ function RecordCard({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Image preview inline */}
           {canPreview && record.fileExt && (
-            <a
-              href={`/api/medical/${record.id}/file`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setShowPreview(true)}
               className="text-[12px] text-[#5a5550] hover:text-[#003087] transition-colors"
             >
               查看
-            </a>
+            </button>
           )}
           {canAnalyze && (
             <button
@@ -234,6 +269,13 @@ function RecordCard({
         </div>
       </div>
 
+      {showPreview && (
+        <PreviewModal
+          title={record.title}
+          src={`/api/medical/${record.id}/file`}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
       {showModal && (
         <AnalysisModal
           title={record.title}
