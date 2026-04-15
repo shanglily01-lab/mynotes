@@ -17,6 +17,7 @@ const DRAWER_NAV = [
   { href: "/monthly",       label: "月度回顾" },
   { href: "/books",         label: "书籍笔记" },
   { href: "/subjects/news", label: "每日新闻" },
+  { href: "/health",        label: "疾病管理" },
 ];
 
 const DRAWER_SUBJECTS = [

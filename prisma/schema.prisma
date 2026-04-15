@@ -118,6 +118,22 @@ model DailyEnglish {
   createdAt  DateTime @default(now())
 }
 
+model MedicalRecord {
+  id         String   @id @default(cuid())
+  type       String   @db.VarChar(50)   // checkup | lab | imaging | prescription | other
+  title      String   @db.VarChar(300)
+  recordDate DateTime @db.Date
+  filePath   String?  @db.VarChar(500)
+  fileExt    String?  @db.VarChar(10)
+  mimeType   String?  @db.VarChar(100)
+  notes      String?  @db.Text
+  aiSummary  String?  @db.LongText
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([recordDate(sort: Desc)])
+}
+
 model ChatSession {
   id        String        @id @default(cuid())
   title     String?       @db.VarChar(300)
