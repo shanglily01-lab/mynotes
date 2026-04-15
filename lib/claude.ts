@@ -402,6 +402,211 @@ export async function generateSubjectCases(
   return clean(text);
 }
 
+const HS_SUBJECT_CHAPTERS: Record<string, string> = {
+  chinese:
+    "现代文阅读（散文/小说）、古诗词鉴赏、文言文阅读、语言文字运用、作文写作（议论文/记叙文）",
+  math:
+    "集合与逻辑、函数（指数/对数/三角）、数列、不等式、解析几何（直线/圆/圆锥曲线）、立体几何、概率与统计、导数及其应用",
+  english:
+    "词汇与短语、阅读理解（七选五/主旨/细节）、完形填空、语法填空、书面表达（应用文/说明文）、语法体系（时态/从句/非谓语动词）",
+  physics:
+    "运动学与牛顿定律、功和能（动能定理/能量守恒）、电场与电路（欧姆定律/电容）、磁场与电磁感应（楞次定律/法拉第）、交变电流、光学与波动、近代物理",
+  chemistry:
+    "物质结构与元素周期律、化学键与化学反应、氧化还原反应、离子方程式、化学平衡（勒夏特列原理）、电化学、有机化学（烃/官能团/反应类型）、实验操作",
+  biology:
+    "细胞结构与功能、细胞代谢（光合/呼吸）、遗传与变异（孟德尔/减数分裂/DNA复制）、生命活动调节（神经/体液/免疫）、生态学（种群/群落/生态系统）、现代生物技术",
+};
+
+const clean = (s: string) =>
+  s.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+// 阶段一：生成高中学科基础知识体系（完整覆盖所有章节考点）
+export async function generateHSMaterialBasic(
+  subject: string,
+  subjectName: string
+): Promise<string> {
+  const chapters = HS_SUBJECT_CHAPTERS[subject] ?? subjectName;
+
+  const text = await ask(
+    `你是一位经验丰富的高中${subjectName}一线教师，请生成《高中${subjectName}——基础知识体系》完整 Markdown 文档。
+
+章节覆盖范围：${chapters}
+
+【要求】
+- 按教材章节顺序组织，每个章节覆盖全部核心考点，不遗漏
+- 每个知识点必须包含：定义/概念 → 核心公式或定理（完整表述）→ 重要结论 → 二次结论（解题中直接用的推论）→ 常见错误与辨析
+- 公式用文字+符号混合表达，不用 LaTeX
+- 重点突出"二次结论"：由基础公式推导出的、高考频繁使用的实用结论
+- 语言严谨，适合高中生备考自学
+- 只输出 Markdown 正文，不加代码块包裹
+
+【格式模板（每个知识点严格遵守）】
+
+## 章节一：[章节名]
+
+### [知识点名称]
+
+**核心概念：** 用1-2句话精准定义或描述。
+
+**公式/定理：** 完整写出公式或定理，包含适用条件。
+
+**重要结论：**
+- 结论1（附说明）
+- 结论2（附说明）
+
+**二次结论（解题常用）：**
+- 推论1：具体说明在什么条件下用、如何用
+- 推论2：同上
+
+**常见错误：** 列出1-2个典型易错点并说明如何辨析。
+
+---
+
+（每章包含全部核心知识点，每章不少于4个知识点）`,
+    16000
+  );
+
+  return clean(text);
+}
+
+// 阶段二：生成高中学科高级深度拓展（推导证明 + 压轴技巧 + 跨章联系）
+export async function generateHSMaterialAdvanced(
+  subject: string,
+  subjectName: string
+): Promise<string> {
+  const chapters = HS_SUBJECT_CHAPTERS[subject] ?? subjectName;
+
+  const advancedFocus: Record<string, string> = {
+    chinese:  "作文深度技法（议论文论证结构、素材化用、语言风格提升）、古诗词深度鉴赏方法、文言文难句解析规律、现代文高难度题型答题框架",
+    math:     "公式推导与证明（三角恒等式推导、圆锥曲线焦点性质证明、导数中值定理等）、压轴题解题技巧（构造辅助函数、换元法、数形结合）、各章节之间的深度联系与综合运用",
+    english:  "长难句分析方法、阅读高难度推理题解题策略、写作高分句型与逻辑架构、完形填空深层逻辑规律、语法难点深度辨析（虚拟语气/倒装/强调）",
+    physics:  "物理公式的推导与本质理解（牛顿定律的微分形式、麦克斯韦方程直觉理解）、压轴综合题分析（多物体系统、带电粒子在复合场中的运动）、模型建立与抽象化方法",
+    chemistry:"反应机理的深度理解（电子转移本质、有机反应机理）、难点专题深析（平衡计算、电化学综合、有机推断）、实验方案设计的深层逻辑",
+    biology:  "生命现象的分子机制（信号转导、基因表达调控）、遗传题深度解题（复杂遗传病概率计算、连锁互换）、生态学定量分析、实验设计的对照原则与变量控制深层逻辑",
+  };
+
+  const focus = advancedFocus[subject] ?? `${subjectName}高难度题型与深层原理`;
+
+  const text = await ask(
+    `你是一位高考名师兼竞赛辅导教师，精通高中${subjectName}。请生成《高中${subjectName}——高级深度拓展》Markdown 文档，面向追求高分和深度理解的学生。
+
+章节范围：${chapters}
+深度拓展重点：${focus}
+
+【要求】
+- 不重复基础知识，专注于基础之上的深度内容
+- 重点内容：
+  1. 核心公式/定理的推导过程（展示"为什么"，不只是"是什么"）
+  2. 各章节之间的深度联系与综合应用规律
+  3. 压轴题/高难题常用的进阶解题技巧（含具体方法说明）
+  4. 高考高频陷阱与反直觉结论的深度辨析
+  5. 竞赛/拓展级别的重要结论（标注难度）
+- 语言深入但清晰，适合学有余力、追求深度的高中生
+- 只输出 Markdown 正文，不加代码块包裹
+
+【格式模板】
+
+## [专题/章节名]
+
+### [深度主题名称]
+
+**本质理解：** 解释这个概念/公式/规律的深层原因或推导思路。
+
+**推导过程：**（如适用，展示关键推导步骤）
+
+**进阶结论：**
+- 进阶结论1（难度：中等/较难/竞赛级）
+- 进阶结论2
+
+**综合应用技巧：** 说明在综合题/压轴题中如何运用，配合典型场景描述。
+
+**易错深析：** 深层原因分析，不只说"注意xxx"，而是解释为何会错、从哪个角度理解才能不错。
+
+---
+
+（每个深度主题内容要有实质深度，不泛泛而谈，覆盖6-10个核心深度专题）`,
+    16000
+  );
+
+  return clean(text);
+}
+
+export interface HSAnalysisResult {
+  questionSummary: string;
+  chapter: string;
+  knowledgePoints: {
+    name: string;
+    weakness: string;
+    level: "核心" | "重点" | "基础";
+  }[];
+  rootCause: string;
+  principles: string[];
+  conclusions: string[];
+  studyPlan: string;
+}
+
+// 分析高中错题图片，诊断薄弱知识点
+export async function analyzeHSWrongAnswer(
+  subjectName: string,
+  imageBase64: string,
+  mimeType: string
+): Promise<HSAnalysisResult> {
+  const model = genAI.getGenerativeModel({
+    model: MODEL,
+    generationConfig: {
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
+    },
+  });
+
+  const prompt = `你是一位专业的高中${subjectName}老师，请仔细分析图中的错题，诊断学生的薄弱知识点并给出针对性辅导。
+
+请严格按以下 JSON 格式返回，不要其他文字：
+{
+  "questionSummary": "用一句话概括这道题考查的核心内容",
+  "chapter": "所属章节（如：二次函数、氧化还原反应、电磁感应等）",
+  "knowledgePoints": [
+    {
+      "name": "薄弱知识点名称",
+      "weakness": "学生在这个知识点上可能的薄弱之处（具体说明哪里容易出错）",
+      "level": "核心"
+    }
+  ],
+  "rootCause": "根因分析：详细说明学生答错的深层原因——哪个概念理解有偏差，哪个步骤逻辑出错，或哪种情况被忽略（2-4句）",
+  "principles": [
+    "与本题直接相关的原理或定理，写出完整表述",
+    "..."
+  ],
+  "conclusions": [
+    "本题涉及的重要二次结论或解题规律（具体、可直接应用的结论）",
+    "..."
+  ],
+  "studyPlan": "针对性学习建议：应重点复习哪些内容、推荐做哪类练习、注意哪些细节（3-5句，实用具体）"
+}
+
+要求：
+- knowledgePoints 列出1-3个最核心的薄弱点，level 只能是"核心""重点""基础"之一
+- principles 列出2-4条，每条都是完整可用的原理表述
+- conclusions 列出2-4条二次结论，要具体可用，不要泛泛而谈
+- 如果图片中看不清题目，基于可辨识的内容尽力分析`;
+
+  const result = await model.generateContent([
+    { inlineData: { mimeType, data: imageBase64 } },
+    prompt,
+  ]);
+
+  const text = result.response.text();
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("no JSON in response");
+    return JSON.parse(jsonMatch[0]) as HSAnalysisResult;
+  } catch (err) {
+    console.error("analyzeHSWrongAnswer parse error:", err, text.slice(0, 200));
+    throw err;
+  }
+}
+
 // 为学科生成完整的经典著作与基础教程 Markdown 文档
 export async function generateSubjectMaterial(
   subjectName: string,

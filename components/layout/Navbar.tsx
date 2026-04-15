@@ -11,6 +11,15 @@ const MAIN_NAV = [
   { href: "/monthly",  label: "月度回顾" },
 ];
 
+const HIGH_SCHOOL = [
+  { href: "/highschool/chinese",   label: "语文", color: "#8b1a2a" },
+  { href: "/highschool/math",      label: "数学", color: "#1a3870" },
+  { href: "/highschool/english",   label: "英语", color: "#1a5c3a" },
+  { href: "/highschool/physics",   label: "物理", color: "#2d1a70" },
+  { href: "/highschool/chemistry", label: "化学", color: "#7a4a00" },
+  { href: "/highschool/biology",   label: "生物", color: "#1a5c20" },
+];
+
 const SUBJECTS = [
   { href: "/subjects/psychology", label: "心理学",    color: "#6b2d6e" },
   { href: "/subjects/biology",    label: "生物学",    color: "#1a5c34" },
@@ -84,6 +93,31 @@ export default function Sidebar() {
               active={item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)}
             />
           ))}
+        </div>
+
+        <div>
+          <SectionLabel>高中</SectionLabel>
+          {HIGH_SCHOOL.map((s) => {
+            const active = pathname === s.href || pathname.startsWith(s.href + "/");
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                className={`flex items-center gap-2 text-[13px] px-2 py-1 mb-0.5 border-l-2 transition-colors ${
+                  active
+                    ? "text-[#1c1a16] font-semibold"
+                    : "border-transparent text-[#5a5550] hover:text-[#1c1a16] hover:border-[#d8d4ca]"
+                }`}
+                style={active ? { borderColor: s.color } : undefined}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: s.color, opacity: active ? 1 : 0.6 }}
+                />
+                {s.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div>

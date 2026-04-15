@@ -1,0 +1,5 @@
+ALTER TABLE `HSMaterial`
+  CHANGE `contentPath` `basicPath` VARCHAR(500) DEFAULT NULL;
+
+ALTER TABLE `HSMaterial`
+  ADD COLUMN `advancedPath` VARCHAR(500) DEFAULT NULL;

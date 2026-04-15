@@ -153,6 +153,26 @@ model ChatMessage {
   @@index([sessionId, createdAt])
 }
 
+model HSMaterial {
+  id           String   @id @default(cuid())
+  subject      String   @unique
+  basicPath    String?  @db.VarChar(500)
+  advancedPath String?  @db.VarChar(500)
+  updatedAt    DateTime @updatedAt
+}
+
+model HSWrongAnswer {
+  id           String   @id @default(cuid())
+  subject      String
+  imagePath    String?  @db.VarChar(500)
+  mimeType     String?  @db.VarChar(100)
+  analysisJson String?  @db.LongText
+  createdAt    DateTime @default(now())
+
+  @@index([subject])
+  @@index([createdAt(sort: Desc)])
+}
+
 model BookDownload {
   id        String   @id @default(cuid())
   subjectId String
