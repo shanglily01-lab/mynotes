@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { getHSSubject } from "@/lib/hs-subjects";
 import type { HSAnalysisResult } from "@/lib/claude";
 
@@ -109,7 +111,12 @@ function KnowledgeSection({
         {/* Content */}
         {!loading && content && (
           <div className="hs-markdown">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+            >
+              {content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
