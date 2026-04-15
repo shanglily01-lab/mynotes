@@ -414,7 +414,7 @@ export const SUBJECTS: SubjectConfig[] = [
     rssFeeds: [
       { url: "https://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World News" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", name: "NYT World" },
-      { url: "https://feeds.reuters.com/reuters/topNews", name: "Reuters Top News" },
+      { url: "https://feeds.apnews.com/rss/apf-topnews", name: "AP Top News" },
       { url: "https://www.theguardian.com/world/rss", name: "The Guardian World" },
     ],
     foundations: [],

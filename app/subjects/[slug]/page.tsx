@@ -42,7 +42,8 @@ export default function SubjectPage({
   const subject = getSubject(slug);
   const color = SUBJECT_COLOR[slug] ?? "#003087";
 
-  const [tab, setTab] = useState<Tab>("material");
+  const isNews = slug === "news";
+  const [tab, setTab] = useState<Tab>(isNews ? "articles" : "material");
   const [articles, setArticles] = useState<Article[]>([]);
   const [content, setContent] = useState<string>("");
   const [casesContent, setCasesContent] = useState<string>("");
@@ -166,7 +167,7 @@ export default function SubjectPage({
           >
             {subject.name}
           </h1>
-          {tab === "material" && (
+          {tab === "material" && !isNews && (
             <button
               onClick={handleGenerate}
               disabled={generating}
@@ -190,7 +191,10 @@ export default function SubjectPage({
 
       {/* Tabs */}
       <div className="flex border-b border-[#d8d4ca]">
-        {(["material", "cases", "resources", "articles"] as Tab[]).map((t) => (
+        {(isNews
+          ? (["articles"] as Tab[])
+          : (["material", "cases", "resources", "articles"] as Tab[])
+        ).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}

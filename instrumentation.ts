@@ -6,13 +6,14 @@ export async function register() {
 
   // 每天 UTC 0点（北京时间 8点）拉取内容并生成当日计划
   cron.schedule("0 0 * * *", async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3010";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3030";
     console.log(`[cron] ${new Date().toISOString()} - starting daily fetch`);
 
     try {
       const fetchRes = await fetch(`${baseUrl}/api/content/fetch`, { method: "POST" });
-      const fetchData = (await fetchRes.json()) as { ok?: boolean; inserted?: Record<string, number> };
-      console.log("[cron] content/fetch done:", fetchData.inserted);
+      // Route returns SSE stream — drain it fully so the server-side work completes
+      await fetchRes.text();
+      console.log("[cron] content/fetch done");
     } catch (e) {
       console.error("[cron] content/fetch failed:", e);
     }
