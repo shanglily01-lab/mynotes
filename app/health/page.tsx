@@ -42,18 +42,33 @@ function formatDate(iso: string) {
 
 function RecordCard({
   record,
+  defaultOpen = false,
+  autoAnalyze = false,
   onDelete,
 }: {
   record: MedicalRecord;
+  defaultOpen?: boolean;
+  autoAnalyze?: boolean;
   onDelete: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [analyzing, setAnalyzing] = useState(false);
   const [summary, setSummary] = useState(record.aiSummary ?? "");
   const [error, setError] = useState("");
+  const analyzed = useRef(false);
+
   const color = TYPE_COLORS[record.type] ?? "#5a5550";
   const canAnalyze = record.mimeType && SUPPORTED_ANALYZE.includes(record.mimeType);
   const canPreview = record.mimeType && SUPPORTED_PREVIEW.includes(record.mimeType);
+
+  // Auto-trigger analysis on mount if requested and no cached summary
+  useEffect(() => {
+    if (autoAnalyze && canAnalyze && !summary && !analyzed.current) {
+      analyzed.current = true;
+      void handleAnalyze();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAnalyze]);
 
   async function handleAnalyze() {
     setAnalyzing(true);
@@ -90,6 +105,9 @@ function RecordCard({
             {TYPE_LABELS[record.type] ?? record.type}
           </span>
           <span className="text-[14px] text-[#1c1a16] font-medium truncate">{record.title}</span>
+          {analyzing && (
+            <span className="text-[11px] text-[#003087] italic flex-shrink-0">AI 分析中...</span>
+          )}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0 ml-3">
           <span className="text-[12px] text-[#9a9590]">{formatDate(record.recordDate)}</span>
@@ -111,13 +129,21 @@ function RecordCard({
                 查看原件 (.{record.fileExt})
               </a>
             )}
-            {canAnalyze && !summary && (
+            {canAnalyze && !summary && !analyzing && (
+              <button
+                onClick={handleAnalyze}
+                className="px-3 py-1.5 text-[12px] bg-[#003087] text-white hover:bg-[#00256a] transition-colors"
+              >
+                AI 智能分析
+              </button>
+            )}
+            {summary && (
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing}
-                className="px-3 py-1.5 text-[12px] bg-[#003087] text-white hover:bg-[#00256a] transition-colors disabled:opacity-40"
+                className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors disabled:opacity-40"
               >
-                {analyzing ? "AI 分析中..." : "AI 智能分析"}
+                {analyzing ? "重新分析中..." : "重新分析"}
               </button>
             )}
             <button
@@ -147,13 +173,23 @@ function RecordCard({
             </div>
           )}
 
+          {/* Analyzing placeholder */}
+          {analyzing && (
+            <div className="border border-[#e4e0d8] px-5 py-6 bg-[#fdfcf9] text-center">
+              <p className="text-[13px] text-[#9a9590] italic">
+                AI 正在识别和分析医疗文件，请稍候...
+              </p>
+              <p className="text-[11px] text-[#c0bab2] mt-1">通常需要 10~30 秒</p>
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <p className="text-[12px] text-red-500 border-l-2 border-red-400 pl-3">{error}</p>
           )}
 
           {/* AI Summary */}
-          {summary && (
+          {summary && !analyzing && (
             <div>
               <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590] mb-2">
                 AI 分析报告
@@ -175,7 +211,11 @@ function RecordCard({
   );
 }
 
-function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord) => void }) {
+function UploadForm({
+  onUploaded,
+}: {
+  onUploaded: (r: MedicalRecord, hasFile: boolean) => void;
+}) {
   const [type, setType] = useState("checkup");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -203,7 +243,7 @@ function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord) => void }) 
       const data = await res.json() as { record?: MedicalRecord; error?: string };
       if (data.error) { setError(data.error); return; }
       if (data.record) {
-        onUploaded(data.record);
+        onUploaded(data.record, !!file);
         setTitle("");
         setNotes("");
         setFile(null);
@@ -258,6 +298,11 @@ function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord) => void }) 
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="w-full text-[13px] text-[#5a5550] file:mr-3 file:px-3 file:py-1.5 file:border file:border-[#d8d4ca] file:bg-[#f5f2eb] file:text-[12px] file:text-[#5a5550] file:cursor-pointer hover:file:border-[#003087]"
         />
+        {file && (
+          <p className="text-[11px] text-[#9a9590] mt-1">
+            已选择：{file.name}（上传后将自动进行 AI 分析）
+          </p>
+        )}
       </div>
 
       <div>
@@ -278,7 +323,7 @@ function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord) => void }) 
         disabled={uploading}
         className="px-5 py-2 bg-[#003087] text-white text-[13px] hover:bg-[#00256a] transition-colors disabled:opacity-40"
       >
-        {uploading ? "上传中..." : "保存记录"}
+        {uploading ? "上传中..." : "保存并分析"}
       </button>
     </form>
   );
@@ -288,6 +333,7 @@ export default function HealthPage() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [newRecordId, setNewRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/medical")
@@ -296,13 +342,15 @@ export default function HealthPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function handleUploaded(record: MedicalRecord) {
+  function handleUploaded(record: MedicalRecord, hasFile: boolean) {
     setRecords((prev) => [record, ...prev]);
     setShowForm(false);
+    if (hasFile) setNewRecordId(record.id);
   }
 
   function handleDelete(id: string) {
     setRecords((prev) => prev.filter((r) => r.id !== id));
+    if (newRecordId === id) setNewRecordId(null);
   }
 
   // Group by year-month
@@ -336,7 +384,7 @@ export default function HealthPage() {
             {showForm ? "收起" : "+ 上传记录"}
           </button>
         </div>
-        <p className="text-[13px] text-[#9a9590] mt-1">存储体检报告、病例单，支持 AI 智能分析</p>
+        <p className="text-[13px] text-[#9a9590] mt-1">存储体检报告、病例单，上传后自动 AI 识别分析</p>
       </div>
 
       {/* Upload form */}
@@ -357,7 +405,13 @@ export default function HealthPage() {
               <p className="text-[11px] tracking-[0.15em] uppercase text-[#9a9590] mb-2">{month}</p>
               <div className="space-y-2">
                 {recs.map((r) => (
-                  <RecordCard key={r.id} record={r} onDelete={handleDelete} />
+                  <RecordCard
+                    key={r.id}
+                    record={r}
+                    defaultOpen={r.id === newRecordId}
+                    autoAnalyze={r.id === newRecordId}
+                    onDelete={handleDelete}
+                  />
                 ))}
               </div>
             </div>
