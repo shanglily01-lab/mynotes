@@ -35,10 +35,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-CN" className={`${playfair.variable} ${lora.variable} h-full`}>
+    <html lang="zh-CN" className={`${playfair.variable} ${lora.variable}`}>
       <body className="min-h-screen flex bg-[#f5f2eb]">
         <Sidebar />
-        <main className="flex-1 min-h-screen md:ml-[220px]">
+        <main className="flex-1 md:ml-[220px]">
           <div className="max-w-3xl mx-auto px-5 md:px-10 py-8 md:py-10 pb-24 md:pb-10">
             {children}
           </div>
