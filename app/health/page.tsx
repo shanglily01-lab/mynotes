@@ -40,6 +40,87 @@ function formatDate(iso: string) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+// ── 弹窗：健康报告 ───────────────────────────────────────────
+function HealthReportModal({
+  report,
+  generating,
+  error,
+  recordCount,
+  onClose,
+  onRegenerate,
+}: {
+  report: string;
+  generating: boolean;
+  error: string;
+  recordCount: number;
+  onClose: () => void;
+  onRegenerate: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full md:max-w-2xl md:mx-4 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e4e0d8] flex-shrink-0">
+          <div>
+            <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590]">AI 健康管理报告</p>
+            <p className="text-[13px] text-[#5a5550] mt-0.5">
+              基于 {recordCount} 份已分析记录综合生成
+            </p>
+          </div>
+          <button onClick={onClose} className="text-[#9a9590] hover:text-[#1c1a16] text-lg leading-none px-2">✕</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          {generating && (
+            <div className="py-12 text-center">
+              <p className="text-[13px] text-[#9a9590] italic">AI 正在综合分析所有记录，生成健康报告...</p>
+              <p className="text-[11px] text-[#c0bab2] mt-1">通常需要 15~40 秒</p>
+            </div>
+          )}
+          {error && !generating && (
+            <p className="text-[12px] text-red-500 border-l-2 border-red-400 pl-3 py-2">{error}</p>
+          )}
+          {report && !generating && (
+            <div className="prose prose-sm max-w-none
+              prose-headings:text-[#1c1a16] prose-headings:font-semibold
+              prose-p:text-[#5a5550] prose-p:leading-relaxed prose-p:text-[13px]
+              prose-li:text-[#5a5550] prose-li:text-[13px]
+              prose-strong:text-[#1c1a16]
+              prose-hr:border-[#e4e0d8]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{report}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3 border-t border-[#e4e0d8] flex items-center justify-between flex-shrink-0">
+          <p className="text-[11px] text-[#c0bab2]">仅供参考，不构成医疗诊断</p>
+          {report && (
+            <button
+              onClick={onRegenerate}
+              disabled={generating}
+              className="text-[12px] text-[#5a5550] hover:text-[#003087] transition-colors disabled:opacity-40"
+            >
+              重新生成
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── 弹窗：图片预览 ───────────────────────────────────────────
 function PreviewModal({ title, src, onClose }: { title: string; src: string; onClose: () => void }) {
   useEffect(() => {
@@ -290,6 +371,123 @@ function RecordCard({
   );
 }
 
+// ── 时间线视图 ────────────────────────────────────────────
+function TimelineView({
+  records,
+  newRecordId,
+  onDelete,
+}: {
+  records: MedicalRecord[];
+  newRecordId: string | null;
+  onDelete: (id: string) => void;
+}) {
+  const [report, setReport] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [reportError, setReportError] = useState("");
+  const [showReport, setShowReport] = useState(false);
+  const [reportCount, setReportCount] = useState(0);
+
+  const sorted = [...records].sort(
+    (a, b) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime()
+  );
+
+  // Group by year
+  const byYear = sorted.reduce<Record<string, MedicalRecord[]>>((acc, r) => {
+    const year = `${new Date(r.recordDate).getFullYear()}年`;
+    (acc[year] ??= []).push(r);
+    return acc;
+  }, {});
+
+  async function generateReport() {
+    setGenerating(true);
+    setReportError("");
+    setReport("");
+    setShowReport(true);
+    try {
+      const res = await fetch("/api/medical/report", { method: "POST" });
+      const data = await res.json() as { report?: string; error?: string; recordCount?: number };
+      if (data.error) { setReportError(data.error); return; }
+      setReport(data.report ?? "");
+      setReportCount(data.recordCount ?? 0);
+    } catch (e) {
+      setReportError(String(e));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <>
+      {/* Generate report button */}
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-[12px] text-[#9a9590]">共 {records.length} 份记录</p>
+        <button
+          onClick={generateReport}
+          disabled={generating}
+          className="px-4 py-1.5 text-[13px] bg-[#1a5c34] text-white hover:bg-[#134a29] transition-colors disabled:opacity-40"
+        >
+          {generating ? "生成中..." : "生成健康报告"}
+        </button>
+      </div>
+
+      {/* Timeline */}
+      <div className="relative">
+        {Object.entries(byYear).map(([year, recs]) => (
+          <div key={year} className="mb-8">
+            {/* Year label */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-[11px] tracking-[0.15em] text-[#9a9590] font-medium">{year}</span>
+              <div className="flex-1 h-px bg-[#e4e0d8]" />
+            </div>
+
+            {/* Records in this year */}
+            <div className="relative pl-6">
+              {/* Vertical line */}
+              <div className="absolute left-[7px] top-0 bottom-0 w-px bg-[#e4e0d8]" />
+
+              <div className="space-y-4">
+                {recs.map((r) => {
+                  const d = new Date(r.recordDate);
+                  const monthDay = `${d.getMonth() + 1}月${d.getDate()}日`;
+                  const color = TYPE_COLORS[r.type] ?? "#5a5550";
+                  return (
+                    <div key={r.id} className="relative">
+                      {/* Dot */}
+                      <div
+                        className="absolute -left-[22px] top-[14px] w-3 h-3 rounded-full border-2 border-white"
+                        style={{ backgroundColor: color }}
+                      />
+                      {/* Date */}
+                      <p className="text-[10px] text-[#9a9590] mb-1">{monthDay}</p>
+                      {/* Card */}
+                      <RecordCard
+                        record={r}
+                        autoAnalyze={r.id === newRecordId}
+                        onDelete={onDelete}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showReport && (
+        <HealthReportModal
+          report={report}
+          generating={generating}
+          error={reportError}
+          recordCount={reportCount}
+          onClose={() => setShowReport(false)}
+          onRegenerate={generateReport}
+        />
+      )}
+    </>
+  );
+}
+
 // ── 上传表单 ─────────────────────────────────────────────
 function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord, hasFile: boolean) => void }) {
   const [type, setType] = useState("checkup");
@@ -403,6 +601,7 @@ export default function HealthPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newRecordId, setNewRecordId] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "timeline">("list");
 
   useEffect(() => {
     fetch("/api/medical")
@@ -447,6 +646,23 @@ export default function HealthPage() {
           </button>
         </div>
         <p className="text-[13px] text-[#9a9590] mt-1">存储体检报告、病例单，上传后自动 AI 识别分析</p>
+        {records.length > 0 && (
+          <div className="flex gap-1 mt-3">
+            {(["list", "timeline"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1 text-[12px] border transition-colors ${
+                  view === v
+                    ? "border-[#1c1a16] text-[#1c1a16] bg-white"
+                    : "border-[#d8d4ca] text-[#9a9590] hover:border-[#1c1a16] hover:text-[#1c1a16]"
+                }`}
+              >
+                {v === "list" ? "列表" : "时间线"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {showForm && <UploadForm onUploaded={handleUploaded} />}
@@ -458,6 +674,8 @@ export default function HealthPage() {
           <p className="text-[14px] text-[#9a9590] italic">暂无记录</p>
           <p className="text-[12px] text-[#9a9590] mt-1">上传体检报告或病例单开始管理健康档案</p>
         </div>
+      ) : view === "timeline" ? (
+        <TimelineView records={records} newRecordId={newRecordId} onDelete={handleDelete} />
       ) : (
         <div className="space-y-6">
           {Object.entries(grouped).map(([month, recs]) => (
