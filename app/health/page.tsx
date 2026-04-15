@@ -40,31 +40,118 @@ function formatDate(iso: string) {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
+// ── 弹窗：AI 分析报告 ──────────────────────────────────────
+function AnalysisModal({
+  title,
+  summary,
+  analyzing,
+  error,
+  onClose,
+  onReanalyze,
+}: {
+  title: string;
+  summary: string;
+  analyzing: boolean;
+  error: string;
+  onClose: () => void;
+  onReanalyze: () => void;
+}) {
+  // 关闭：点遮罩或按 ESC
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full md:max-w-2xl md:mx-4 max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#e4e0d8] flex-shrink-0">
+          <div>
+            <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590]">AI 分析报告</p>
+            <p className="text-[14px] font-semibold text-[#1c1a16] mt-0.5">{title}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[#9a9590] hover:text-[#1c1a16] text-lg leading-none px-2"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Modal body — scrollable */}
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          {analyzing && (
+            <div className="py-12 text-center">
+              <p className="text-[13px] text-[#9a9590] italic">AI 正在识别和分析医疗文件，请稍候...</p>
+              <p className="text-[11px] text-[#c0bab2] mt-1">通常需要 10~30 秒</p>
+            </div>
+          )}
+          {error && !analyzing && (
+            <p className="text-[12px] text-red-500 border-l-2 border-red-400 pl-3 py-2">{error}</p>
+          )}
+          {summary && !analyzing && (
+            <div className="prose prose-sm max-w-none
+              prose-headings:text-[#1c1a16] prose-headings:font-semibold
+              prose-p:text-[#5a5550] prose-p:leading-relaxed prose-p:text-[13px]
+              prose-li:text-[#5a5550] prose-li:text-[13px]
+              prose-strong:text-[#1c1a16]
+              prose-hr:border-[#e4e0d8]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        {/* Modal footer */}
+        <div className="px-5 py-3 border-t border-[#e4e0d8] flex items-center justify-between flex-shrink-0">
+          <p className="text-[11px] text-[#c0bab2]">仅供参考，不构成医疗诊断</p>
+          {summary && (
+            <button
+              onClick={onReanalyze}
+              disabled={analyzing}
+              className="text-[12px] text-[#5a5550] hover:text-[#003087] transition-colors disabled:opacity-40"
+            >
+              重新分析
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 单条记录卡片 ──────────────────────────────────────────
 function RecordCard({
   record,
-  defaultOpen = false,
   autoAnalyze = false,
   onDelete,
 }: {
   record: MedicalRecord;
-  defaultOpen?: boolean;
   autoAnalyze?: boolean;
   onDelete: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
   const [analyzing, setAnalyzing] = useState(false);
   const [summary, setSummary] = useState(record.aiSummary ?? "");
   const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
   const analyzed = useRef(false);
 
   const color = TYPE_COLORS[record.type] ?? "#5a5550";
   const canAnalyze = record.mimeType && SUPPORTED_ANALYZE.includes(record.mimeType);
   const canPreview = record.mimeType && SUPPORTED_PREVIEW.includes(record.mimeType);
 
-  // Auto-trigger analysis on mount if requested and no cached summary
   useEffect(() => {
     if (autoAnalyze && canAnalyze && !summary && !analyzed.current) {
       analyzed.current = true;
+      setShowModal(true);
       void handleAnalyze();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,6 +172,13 @@ function RecordCard({
     }
   }
 
+  function openAnalysis() {
+    setShowModal(true);
+    if (canAnalyze && !summary && !analyzing) {
+      void handleAnalyze();
+    }
+  }
+
   async function handleDelete() {
     if (!confirm(`确认删除「${record.title}」？`)) return;
     await fetch(`/api/medical/${record.id}`, { method: "DELETE" });
@@ -92,11 +186,8 @@ function RecordCard({
   }
 
   return (
-    <div className="bg-white border border-[#d8d4ca]">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f5f2eb] transition-colors text-left"
-      >
+    <>
+      <div className="bg-white border border-[#d8d4ca] px-5 py-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <span
             className="text-[10px] tracking-[0.12em] uppercase px-2 py-0.5 flex-shrink-0"
@@ -104,118 +195,57 @@ function RecordCard({
           >
             {TYPE_LABELS[record.type] ?? record.type}
           </span>
-          <span className="text-[14px] text-[#1c1a16] font-medium truncate">{record.title}</span>
-          {analyzing && (
-            <span className="text-[11px] text-[#003087] italic flex-shrink-0">AI 分析中...</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-          <span className="text-[12px] text-[#9a9590]">{formatDate(record.recordDate)}</span>
-          <span className="text-[#9a9590] text-sm">{open ? "▲" : "▼"}</span>
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t border-[#e4e0d8] px-5 py-5 space-y-4">
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2">
-            {record.fileExt && (
-              <a
-                href={`/api/medical/${record.id}/file`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors"
-              >
-                查看原件 (.{record.fileExt})
-              </a>
-            )}
-            {canAnalyze && !summary && !analyzing && (
-              <button
-                onClick={handleAnalyze}
-                className="px-3 py-1.5 text-[12px] bg-[#003087] text-white hover:bg-[#00256a] transition-colors"
-              >
-                AI 智能分析
-              </button>
-            )}
-            {summary && (
-              <button
-                onClick={handleAnalyze}
-                disabled={analyzing}
-                className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors disabled:opacity-40"
-              >
-                {analyzing ? "重新分析中..." : "重新分析"}
-              </button>
-            )}
-            <button
-              onClick={handleDelete}
-              className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#9a9590] hover:border-red-400 hover:text-red-500 transition-colors ml-auto"
-            >
-              删除
-            </button>
+          <div className="min-w-0">
+            <p className="text-[14px] text-[#1c1a16] font-medium truncate">{record.title}</p>
+            <p className="text-[11px] text-[#9a9590]">{formatDate(record.recordDate)}</p>
           </div>
-
-          {/* Image preview */}
-          {canPreview && record.fileExt && (
-            <div className="border border-[#e4e0d8] overflow-hidden">
-              <img
-                src={`/api/medical/${record.id}/file`}
-                alt={record.title}
-                className="max-w-full max-h-[400px] object-contain mx-auto block"
-              />
-            </div>
-          )}
-
-          {/* Notes */}
-          {record.notes && (
-            <div>
-              <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590] mb-1">备注</p>
-              <p className="text-[13px] text-[#5a5550] leading-relaxed">{record.notes}</p>
-            </div>
-          )}
-
-          {/* Analyzing placeholder */}
-          {analyzing && (
-            <div className="border border-[#e4e0d8] px-5 py-6 bg-[#fdfcf9] text-center">
-              <p className="text-[13px] text-[#9a9590] italic">
-                AI 正在识别和分析医疗文件，请稍候...
-              </p>
-              <p className="text-[11px] text-[#c0bab2] mt-1">通常需要 10~30 秒</p>
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <p className="text-[12px] text-red-500 border-l-2 border-red-400 pl-3">{error}</p>
-          )}
-
-          {/* AI Summary */}
-          {summary && !analyzing && (
-            <div>
-              <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590] mb-2">
-                AI 分析报告
-                <span className="ml-2 normal-case text-[#c0bab2]">仅供参考，不构成医疗诊断</span>
-              </p>
-              <div className="prose prose-sm max-w-none border border-[#e4e0d8] px-5 py-4 bg-[#fdfcf9]
-                prose-headings:text-[#1c1a16] prose-headings:font-semibold
-                prose-p:text-[#5a5550] prose-p:leading-relaxed prose-p:text-[13px]
-                prose-li:text-[#5a5550] prose-li:text-[13px]
-                prose-strong:text-[#1c1a16]
-                prose-hr:border-[#e4e0d8]">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
-              </div>
-            </div>
-          )}
         </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Image preview inline */}
+          {canPreview && record.fileExt && (
+            <a
+              href={`/api/medical/${record.id}/file`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[12px] text-[#5a5550] hover:text-[#003087] transition-colors"
+            >
+              查看
+            </a>
+          )}
+          {canAnalyze && (
+            <button
+              onClick={openAnalysis}
+              className="px-3 py-1 text-[12px] bg-[#003087] text-white hover:bg-[#00256a] transition-colors"
+            >
+              {analyzing ? "分析中..." : summary ? "查看分析" : "AI 分析"}
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="text-[12px] text-[#c0bab2] hover:text-red-500 transition-colors"
+          >
+            删除
+          </button>
+        </div>
+      </div>
+
+      {showModal && (
+        <AnalysisModal
+          title={record.title}
+          summary={summary}
+          analyzing={analyzing}
+          error={error}
+          onClose={() => setShowModal(false)}
+          onReanalyze={() => void handleAnalyze()}
+        />
       )}
-    </div>
+    </>
   );
 }
 
-function UploadForm({
-  onUploaded,
-}: {
-  onUploaded: (r: MedicalRecord, hasFile: boolean) => void;
-}) {
+// ── 上传表单 ─────────────────────────────────────────────
+function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord, hasFile: boolean) => void }) {
   const [type, setType] = useState("checkup");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -244,9 +274,7 @@ function UploadForm({
       if (data.error) { setError(data.error); return; }
       if (data.record) {
         onUploaded(data.record, !!file);
-        setTitle("");
-        setNotes("");
-        setFile(null);
+        setTitle(""); setNotes(""); setFile(null);
         if (fileRef.current) fileRef.current.value = "";
       }
     } catch (e) {
@@ -281,9 +309,7 @@ function UploadForm({
       <div>
         <label className={labelClass}>标题 *</label>
         <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          type="text" value={title} onChange={(e) => setTitle(e.target.value)}
           placeholder="如：2024年度体检报告、血糖化验单..."
           className={inputClass}
         />
@@ -292,25 +318,17 @@ function UploadForm({
       <div>
         <label className={labelClass}>上传文件（JPG / PNG / PDF）</label>
         <input
-          ref={fileRef}
-          type="file"
+          ref={fileRef} type="file"
           accept="image/jpeg,image/png,image/webp,application/pdf"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="w-full text-[13px] text-[#5a5550] file:mr-3 file:px-3 file:py-1.5 file:border file:border-[#d8d4ca] file:bg-[#f5f2eb] file:text-[12px] file:text-[#5a5550] file:cursor-pointer hover:file:border-[#003087]"
         />
-        {file && (
-          <p className="text-[11px] text-[#9a9590] mt-1">
-            已选择：{file.name}（上传后将自动进行 AI 分析）
-          </p>
-        )}
+        {file && <p className="text-[11px] text-[#9a9590] mt-1">已选择：{file.name}（保存后自动分析）</p>}
       </div>
 
       <div>
         <label className={labelClass}>备注（可选）</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={2}
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
           placeholder="记录就诊情况、医生建议等..."
           className={`${inputClass} resize-none`}
         />
@@ -318,17 +336,15 @@ function UploadForm({
 
       {error && <p className="text-[12px] text-red-500">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={uploading}
-        className="px-5 py-2 bg-[#003087] text-white text-[13px] hover:bg-[#00256a] transition-colors disabled:opacity-40"
-      >
+      <button type="submit" disabled={uploading}
+        className="px-5 py-2 bg-[#003087] text-white text-[13px] hover:bg-[#00256a] transition-colors disabled:opacity-40">
         {uploading ? "上传中..." : "保存并分析"}
       </button>
     </form>
   );
 }
 
+// ── 主页面 ────────────────────────────────────────────────
 export default function HealthPage() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -353,7 +369,6 @@ export default function HealthPage() {
     if (newRecordId === id) setNewRecordId(null);
   }
 
-  // Group by year-month
   const grouped = records.reduce<Record<string, MedicalRecord[]>>((acc, r) => {
     const d = new Date(r.recordDate);
     const key = `${d.getFullYear()}年${d.getMonth() + 1}月`;
@@ -363,34 +378,26 @@ export default function HealthPage() {
 
   return (
     <div className="space-y-7">
-      {/* Header */}
       <div className="border-b border-[#d8d4ca] pb-5">
         <p className="text-[11px] tracking-[0.18em] uppercase text-[#9a9590] mb-1">个人健康</p>
         <div className="flex items-end justify-between">
-          <h1
-            className="text-3xl font-bold text-[#1c1a16]"
-            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
-          >
+          <h1 className="text-3xl font-bold text-[#1c1a16]"
+            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}>
             疾病管理
           </h1>
-          <button
-            onClick={() => setShowForm((v) => !v)}
+          <button onClick={() => setShowForm((v) => !v)}
             className={`px-4 py-1.5 text-[13px] border transition-colors ${
-              showForm
-                ? "border-[#003087] text-[#003087]"
-                : "border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087]"
-            }`}
-          >
+              showForm ? "border-[#003087] text-[#003087]"
+                       : "border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087]"
+            }`}>
             {showForm ? "收起" : "+ 上传记录"}
           </button>
         </div>
         <p className="text-[13px] text-[#9a9590] mt-1">存储体检报告、病例单，上传后自动 AI 识别分析</p>
       </div>
 
-      {/* Upload form */}
       {showForm && <UploadForm onUploaded={handleUploaded} />}
 
-      {/* Record list */}
       {loading ? (
         <p className="text-center py-16 text-[13px] text-[#9a9590] italic">加载中...</p>
       ) : records.length === 0 ? (
@@ -408,7 +415,6 @@ export default function HealthPage() {
                   <RecordCard
                     key={r.id}
                     record={r}
-                    defaultOpen={r.id === newRecordId}
                     autoAnalyze={r.id === newRecordId}
                     onDelete={handleDelete}
                   />
