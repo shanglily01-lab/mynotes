@@ -303,13 +303,14 @@ function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord, hasFile: bo
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim()) { setError("请填写标题"); return; }
+    const finalTitle = title.trim() || (file ? file.name.replace(/\.[^/.]+$/, "") : "");
+    if (!finalTitle) { setError("请填写标题或选择文件"); return; }
     setUploading(true);
     setError("");
 
     const form = new FormData();
     form.append("type", type);
-    form.append("title", title.trim());
+    form.append("title", finalTitle);
     form.append("date", date);
     form.append("notes", notes.trim());
     if (file) form.append("file", file);
@@ -353,23 +354,29 @@ function UploadForm({ onUploaded }: { onUploaded: (r: MedicalRecord, hasFile: bo
       </div>
 
       <div>
-        <label className={labelClass}>标题 *</label>
+        <label className={labelClass}>上传文件（JPG / PNG / PDF）</label>
+        <input
+          ref={fileRef} type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            setFile(f);
+            if (f) {
+              const nameWithoutExt = f.name.replace(/\.[^/.]+$/, "");
+              setTitle(nameWithoutExt);
+            }
+          }}
+          className="w-full text-[13px] text-[#5a5550] file:mr-3 file:px-3 file:py-1.5 file:border file:border-[#d8d4ca] file:bg-[#f5f2eb] file:text-[12px] file:text-[#5a5550] file:cursor-pointer hover:file:border-[#003087]"
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>标题</label>
         <input
           type="text" value={title} onChange={(e) => setTitle(e.target.value)}
           placeholder="如：2024年度体检报告、血糖化验单..."
           className={inputClass}
         />
-      </div>
-
-      <div>
-        <label className={labelClass}>上传文件（JPG / PNG / PDF）</label>
-        <input
-          ref={fileRef} type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-[13px] text-[#5a5550] file:mr-3 file:px-3 file:py-1.5 file:border file:border-[#d8d4ca] file:bg-[#f5f2eb] file:text-[12px] file:text-[#5a5550] file:cursor-pointer hover:file:border-[#003087]"
-        />
-        {file && <p className="text-[11px] text-[#9a9590] mt-1">已选择：{file.name}（保存后自动分析）</p>}
       </div>
 
       <div>
