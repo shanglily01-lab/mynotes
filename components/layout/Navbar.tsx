@@ -19,7 +19,6 @@ const SUBJECTS = [
   { href: "/subjects/philosophy", label: "哲学",      color: "#3a2870" },
   { href: "/subjects/theology",   label: "神学",      color: "#7a1c30" },
   { href: "/subjects/medicine",   label: "现代医学",  color: "#1a5c4a" },
-  { href: "/subjects/diabetes",   label: "糖尿病管理", color: "#8b1a1a" },
 ];
 
 const TOOLS = [
