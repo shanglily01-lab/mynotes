@@ -16,14 +16,22 @@ const SYSTEM_PROMPT = `你是一位专业的医学顾问。请分析这份医疗
 请用结构化的 Markdown 格式输出，语言通俗易懂，但保持专业准确。
 注意：本分析仅供参考，不构成医疗诊断，如有健康问题请咨询医生。`;
 
-export async function POST(_req: NextRequest, { params }: Ctx) {
+// DELETE /api/medical/[id]/analyze — clear cached summary so next POST re-generates
+export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const { id } = await params;
+  await prisma.medicalRecord.update({ where: { id }, data: { aiSummary: null } });
+  return NextResponse.json({ ok: true });
+}
+
+export async function POST(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
+  const body = await req.json().catch(() => ({})) as { force?: boolean };
 
   const record = await prisma.medicalRecord.findUnique({ where: { id } });
   if (!record) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  // Return cached summary if exists
-  if (record.aiSummary) {
+  // Return cached summary unless force=true
+  if (record.aiSummary && !body.force) {
     return NextResponse.json({ summary: record.aiSummary, cached: true });
   }
 
@@ -43,7 +51,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
 
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
-    generationConfig: { maxOutputTokens: 2048 },
+    generationConfig: { maxOutputTokens: 8192 },
   });
 
   const result = await model.generateContent([

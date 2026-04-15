@@ -157,11 +157,15 @@ function RecordCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoAnalyze]);
 
-  async function handleAnalyze() {
+  async function handleAnalyze(force = false) {
     setAnalyzing(true);
     setError("");
     try {
-      const res = await fetch(`/api/medical/${record.id}/analyze`, { method: "POST" });
+      const res = await fetch(`/api/medical/${record.id}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
       const data = await res.json() as { summary?: string; error?: string };
       if (data.error) { setError(data.error); return; }
       setSummary(data.summary ?? "");
@@ -237,7 +241,7 @@ function RecordCard({
           analyzing={analyzing}
           error={error}
           onClose={() => setShowModal(false)}
-          onReanalyze={() => void handleAnalyze()}
+          onReanalyze={() => void handleAnalyze(true)}
         />
       )}
     </>
