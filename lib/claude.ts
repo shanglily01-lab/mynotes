@@ -402,6 +402,9 @@ export async function generateSubjectCases(
   return clean(text);
 }
 
+// Subjects that use math/science formulas and need LaTeX rendering
+const STEM_SUBJECTS = new Set(["math", "physics", "chemistry", "biology"]);
+
 const HS_SUBJECT_CHAPTERS: Record<string, string> = {
   chinese:
     "现代文阅读（散文/小说）、古诗词鉴赏、文言文阅读、语言文字运用、作文写作（议论文/记叙文）",
@@ -426,19 +429,51 @@ export async function generateHSMaterialBasic(
   subjectName: string
 ): Promise<string> {
   const chapters = HS_SUBJECT_CHAPTERS[subject] ?? subjectName;
+  const isStem = STEM_SUBJECTS.has(subject);
+
+  const latexReq = isStem
+    ? `- **所有数学公式和符号必须使用 LaTeX 语法**：行内公式用 $...$，独立公式用 $$...$$
+  - 例如：速度公式 $v = v_0 + at$，位移公式 $$x = v_0 t + \\frac{1}{2}at^2$$
+  - 分数用 \\frac{}{}，根号用 \\sqrt{}，上标用 ^{}，下标用 _{}，乘号用 \\times 或 \\cdot`
+    : `- 禁止使用 LaTeX 或任何数学符号语法（$、$$、\\frac 等），本学科只使用纯文字和标准 Markdown`;
+
+  const formulaLine = isStem
+    ? `**公式/定理：** 完整写出公式，用 LaTeX 格式。例：$$F = ma$$`
+    : `**核心规则/方法：** 完整表述核心规则或方法（纯文字，不使用任何数学符号）`;
+
+  const conclusionLine = isStem
+    ? `- 结论1（可含行内公式，如 $v^2 = v_0^2 + 2ax$）`
+    : `- 结论1（附简要说明）`;
+
+  const secondarySection = isStem
+    ? `**二次结论（解题常用）：**
+- 推论1：说明条件和用法，公式用 LaTeX
+- 推论2：同上`
+    : `**解题要点：**
+- 要点1：说明在什么题型中如何运用
+- 要点2：同上`;
+
+  const gaokaoContext: Record<string, string> = {
+    chinese:  "语文高考150分：现代文阅读（文学类36分+信息类19分）、古诗词鉴赏（9分）、文言文阅读（20分）、语言文字运用（20分）、作文（60分）",
+    math:     "数学高考150分：选择题（8题×5分）、填空题（4题×5分）、解答题（6题共90分，数列/导数/解析几何/概率统计为压轴固定专题）",
+    english:  "英语高考150分：阅读理解（4篇40分）、七选五（15分）、完形填空（15分）、语法填空（15分）、写作（40分，应用文+读后续写/概要写作）",
+    physics:  "物理新高考100分：选择题（6题×4分）、实验题（约18分）、计算题（约58分，力学综合+电磁综合为必考压轴）",
+    chemistry:"化学新高考100分：选择题（7题×4分）、工艺流程/元素推断（约36分）、实验设计（约18分）、有机推断综合（约18分）",
+    biology:  "生物新高考100分：选择题（6题×4分）、综合题（约76分，遗传分析/生命调节/生态系统/实验设计为固定高频考点）",
+  };
+  const gaokaoCtx = gaokaoContext[subject] ?? `${subjectName}高考考查范围`;
 
   const text = await ask(
     `你是一位经验丰富的高中${subjectName}一线教师，请生成《高中${subjectName}——基础知识体系》完整 Markdown 文档。
 
 章节覆盖范围：${chapters}
+高考分值结构：${gaokaoCtx}
 
 【要求】
 - 按教材章节顺序组织，每个章节覆盖全部核心考点，不遗漏
-- 每个知识点必须包含：定义/概念 → 核心公式或定理（完整表述）→ 重要结论 → 二次结论（解题中直接用的推论）→ 常见错误与辨析
-- **所有数学公式和符号必须使用 LaTeX 语法**：行内公式用 $...$，独立公式用 $$...$$
-  - 例如：速度公式 $v = v_0 + at$，位移公式 $$x = v_0 t + \\frac{1}{2}at^2$$
-  - 分数用 \\frac{}{}，根号用 \\sqrt{}，上标用 ^{}，下标用 _{}，乘号用 \\times 或 \\cdot
-- 重点突出"二次结论"：由基础公式推导出的、高考频繁使用的实用结论
+- 每个知识点必须包含：定义/概念 → 核心规则/公式 → 重要结论 → 解题要点 → 高考考点 → 常见错误
+- 【高考考点】是本模板的核心要求：必须注明该知识点在高考中的题型、分值权重、近年命题角度
+${latexReq}
 - 语言严谨，适合高中生备考自学
 - 只输出 Markdown 正文，不加代码块包裹
 
@@ -450,15 +485,18 @@ export async function generateHSMaterialBasic(
 
 **核心概念：** 用1-2句话精准定义或描述。
 
-**公式/定理：** 完整写出公式，用 LaTeX 格式。例：$$F = ma$$
+${formulaLine}
 
 **重要结论：**
-- 结论1（可含行内公式，如 $v^2 = v_0^2 + 2ax$）
+${conclusionLine}
 - 结论2（附说明）
 
-**二次结论（解题常用）：**
-- 推论1：说明条件和用法，公式用 LaTeX
-- 推论2：同上
+${secondarySection}
+
+**高考考点：**
+- 题型：本知识点常以何种题型考查（选择/填空/实验/计算/问答等），分值区间
+- 频率：高频/中频/低频（近5年高考出现情况）
+- 命题角度：1-2个典型出题角度或情境设置（具体，不要泛泛而谈）
 
 **常见错误：** 列出1-2个典型易错点并说明如何辨析。
 
@@ -477,6 +515,7 @@ export async function generateHSMaterialAdvanced(
   subjectName: string
 ): Promise<string> {
   const chapters = HS_SUBJECT_CHAPTERS[subject] ?? subjectName;
+  const isStem = STEM_SUBJECTS.has(subject);
 
   const advancedFocus: Record<string, string> = {
     chinese:  "作文深度技法（议论文论证结构、素材化用、语言风格提升）、古诗词深度鉴赏方法、文言文难句解析规律、现代文高难度题型答题框架",
@@ -489,23 +528,52 @@ export async function generateHSMaterialAdvanced(
 
   const focus = advancedFocus[subject] ?? `${subjectName}高难度题型与深层原理`;
 
+  const latexReq = isStem
+    ? `- **所有数学公式和符号必须使用 LaTeX 语法**：行内公式用 $...$，独立公式用 $$...$$
+  - 例如：$E = mc^2$，$$\\oint \\vec{B} \\cdot d\\vec{l} = \\mu_0 I$$
+  - 分数用 \\frac{}{}，根号用 \\sqrt{}，上标 ^{}，下标 _{}，向量 \\vec{}，积分 \\int，求和 \\sum`
+    : `- 禁止使用 LaTeX 或任何数学符号语法（$、$$、\\frac 等），本学科只使用纯文字和标准 Markdown`;
+
+  const derivationSection = isStem
+    ? `**推导过程：**（展示关键推导步骤，每步用 LaTeX 公式）
+
+$$推导步骤公式$$`
+    : `**深层分析：**（展示该规律/方法的深层原因，用具体例子说明）`;
+
+  const advancedConclusion = isStem
+    ? `**进阶结论：**
+- 进阶结论1，如 $F = -\\nabla U$（难度：中等/较难/竞赛级）
+- 进阶结论2`
+    : `**进阶要点：**
+- 进阶要点1（难度：中等/较难）
+- 进阶要点2`;
+
+  const gaokaoContext: Record<string, string> = {
+    chinese:  "语文高考150分；现代文阅读（文学类36分+信息类19分）、古诗词（9分）、文言文（20分）、语言文字运用（20分）、作文（60分）",
+    math:     "数学高考150分；选择题（8题×5分）、填空题（4题×5分）、解答题（6题共90分，数列/导数/解析几何/概率统计为压轴固定专题）",
+    english:  "英语高考150分；阅读理解（4篇40分）、七选五（15分）、完形填空（15分）、语法填空（15分）、写作（40分）",
+    physics:  "物理新高考100分；选择题（6题×4分）、实验题（约18分）、计算题（约58分，力学+电磁综合为压轴）",
+    chemistry:"化学新高考100分；选择题（7题×4分）、工艺流程/元素推断（约36分）、实验设计（约18分）、有机推断综合（约18分）",
+    biology:  "生物新高考100分；选择题（6题×4分）、综合题（约76分，遗传/调节/生态/实验为高频考点）",
+  };
+  const gaokaoCtx = gaokaoContext[subject] ?? `${subjectName}高考考查范围`;
+
   const text = await ask(
     `你是一位高考名师兼竞赛辅导教师，精通高中${subjectName}。请生成《高中${subjectName}——高级深度拓展》Markdown 文档，面向追求高分和深度理解的学生。
 
 章节范围：${chapters}
 深度拓展重点：${focus}
+高考分值结构：${gaokaoCtx}
 
 【要求】
 - 不重复基础知识，专注于基础之上的深度内容
 - 重点内容：
-  1. 核心公式/定理的推导过程（展示"为什么"，不只是"是什么"）
+  1. 核心规则/公式的深层原因或推导（展示"为什么"，不只是"是什么"）
   2. 各章节之间的深度联系与综合应用规律
   3. 压轴题/高难题常用的进阶解题技巧（含具体方法说明）
-  4. 高考高频陷阱与反直觉结论的深度辨析
-  5. 竞赛/拓展级别的重要结论（标注难度）
-- **所有数学公式和符号必须使用 LaTeX 语法**：行内公式用 $...$，独立公式用 $$...$$
-  - 例如：$E = mc^2$，$$\\oint \\vec{B} \\cdot d\\vec{l} = \\mu_0 I$$
-  - 分数用 \\frac{}{}，根号用 \\sqrt{}，上标 ^{}，下标 _{}，向量 \\vec{}，积分 \\int，求和 \\sum
+  4. 高考命题规律与高分拿分策略（具体说明该专题如何在高考中出题）
+  5. 拓展级别的重要结论（标注难度）
+${latexReq}
 - 语言深入但清晰，适合学有余力、追求深度的高中生
 - 只输出 Markdown 正文，不加代码块包裹
 
@@ -515,17 +583,15 @@ export async function generateHSMaterialAdvanced(
 
 ### [深度主题名称]
 
-**本质理解：** 解释这个概念/公式/规律的深层原因或推导思路。
+**本质理解：** 解释这个概念/规律的深层原因或推导思路。
 
-**推导过程：**（展示关键推导步骤，每步用 LaTeX 公式）
+${derivationSection}
 
-$$推导步骤公式$$
-
-**进阶结论：**
-- 进阶结论1，如 $F = -\\nabla U$（难度：中等/较难/竞赛级）
-- 进阶结论2
+${advancedConclusion}
 
 **综合应用技巧：** 说明在综合题/压轴题中如何运用，配合典型场景描述。
+
+**高考命题规律：** 本专题在高考中的出题形式、难度层次、典型问法，以及与哪些考点组合出现，如何拿满分。
 
 **易错深析：** 深层原因分析，解释为何会错、从哪个角度理解才能不错。
 

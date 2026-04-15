@@ -1,11 +1,22 @@
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, Part } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 
 interface Message {
   role: "user" | "model";
   text: string;
+  imageBase64?: string;
+  imageMimeType?: string;
+}
+
+function buildParts(m: Message): Part[] {
+  const parts: Part[] = [];
+  if (m.imageBase64 && m.imageMimeType) {
+    parts.push({ inlineData: { mimeType: m.imageMimeType, data: m.imageBase64 } });
+  }
+  parts.push({ text: m.text || " " });
+  return parts;
 }
 
 export async function POST(req: NextRequest) {
@@ -19,10 +30,9 @@ export async function POST(req: NextRequest) {
     generationConfig: { maxOutputTokens: 4096 },
   });
 
-  // Build history (all but the last message)
   const history = messages.slice(0, -1).map((m) => ({
     role: m.role,
-    parts: [{ text: m.text }],
+    parts: buildParts(m),
   }));
 
   const lastMessage = messages[messages.length - 1];
@@ -35,7 +45,7 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const result = await chat.sendMessageStream(lastMessage.text);
+        const result = await chat.sendMessageStream(buildParts(lastMessage));
         for await (const chunk of result.stream) {
           const text = chunk.text();
           if (text) {
