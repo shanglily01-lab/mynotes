@@ -67,6 +67,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     return NextResponse.json({ phase, content });
   } catch (err) {
     console.error(`[school-material] generate error ${level}/${subject} phase=${phase}:`, err);
-    return NextResponse.json({ error: "AI generation failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "AI generation failed", detail: msg }, { status: 500 });
   }
 }
