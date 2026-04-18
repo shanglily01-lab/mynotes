@@ -30,7 +30,7 @@ export async function POST() {
   if (items.length > 0) {
     const grouped = await Promise.all(
       SUBJECTS.map(async (s) => {
-        const subItems = items.filter((item) => item.subjectId === s.id);
+        const subItems = items.filter((item: (typeof items)[number]) => item.subjectId === s.id);
         if (subItems.length === 0) return null;
         const parts = await Promise.all(
           subItems.map(async (item) => {
