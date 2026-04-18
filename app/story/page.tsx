@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -88,11 +88,69 @@ export default function StoryPage() {
   const [story, setStory] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>("");
+  const [speaking, setSpeaking] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const selectedRace = RACES.find((r) => r.id === selectedRaceId) ?? RACES[0]!;
   const selectedHero = selectedRace.heroes.find((h) => h.id === selectedHeroId) ?? null;
 
+  // Stop speech when story changes or component unmounts
+  useEffect(() => {
+    return () => { window.speechSynthesis?.cancel(); };
+  }, []);
+
+  useEffect(() => {
+    if (story) stopSpeech();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story]);
+
+  function stopSpeech() {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+    setPaused(false);
+    utteranceRef.current = null;
+  }
+
+  function startSpeech() {
+    if (!story) return;
+    window.speechSynthesis?.cancel();
+    // Strip markdown syntax for cleaner reading
+    const plainText = story
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/`/g, "")
+      .replace(/\n+/g, "，");
+    const utter = new SpeechSynthesisUtterance(plainText);
+    utter.lang = "zh-CN";
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
+    // Prefer a Chinese voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find((v) => v.lang.startsWith("zh"));
+    if (zhVoice) utter.voice = zhVoice;
+    utter.onend = () => { setSpeaking(false); setPaused(false); };
+    utter.onerror = () => { setSpeaking(false); setPaused(false); };
+    utteranceRef.current = utter;
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
+    setPaused(false);
+  }
+
+  function togglePause() {
+    if (!speaking) return;
+    if (paused) {
+      window.speechSynthesis.resume();
+      setPaused(false);
+    } else {
+      window.speechSynthesis.pause();
+      setPaused(true);
+    }
+  }
+
   function selectRace(raceId: string) {
+    stopSpeech();
     setSelectedRaceId(raceId);
     setSelectedHeroId(null);
     setStory("");
@@ -270,18 +328,57 @@ export default function StoryPage() {
           className="border-l-4 pl-6 py-2"
           style={{ borderColor: selectedRace.color }}
         >
-          <div className="flex items-center gap-2 mb-4">
-            <span
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: selectedRace.color }}
-            />
-            <span className="text-[11px] tracking-[0.15em] uppercase text-[#9a9590]">
-              {selectedHero?.name} · {STORY_TYPES.find((t) => t.id === storyType)?.label}
-            </span>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: selectedRace.color }}
+              />
+              <span className="text-[11px] tracking-[0.15em] uppercase text-[#9a9590]">
+                {selectedHero?.name} · {STORY_TYPES.find((t) => t.id === storyType)?.label}
+              </span>
+            </div>
+
+            {/* TTS controls */}
+            <div className="flex items-center gap-2">
+              {!speaking ? (
+                <button
+                  onClick={startSpeech}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] border transition-colors"
+                  style={{ borderColor: selectedRace.color, color: selectedRace.color, backgroundColor: selectedRace.bgColor }}
+                >
+                  <span>&#9654;</span>
+                  朗读
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={togglePause}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] border transition-colors"
+                    style={{ borderColor: selectedRace.color, color: selectedRace.color, backgroundColor: selectedRace.bgColor }}
+                  >
+                    <span>{paused ? "▶" : "⏸"}</span>
+                    {paused ? "继续" : "暂停"}
+                  </button>
+                  <button
+                    onClick={stopSpeech}
+                    className="px-3 py-1.5 text-[12px] border border-[#d8d4ca] text-[#5a5550] transition-colors"
+                  >
+                    停止
+                  </button>
+                </>
+              )}
+              {speaking && (
+                <span className="text-[11px] text-[#9a9590] animate-pulse">
+                  {paused ? "已暂停" : "朗读中..."}
+                </span>
+              )}
+            </div>
           </div>
+
           <div
-            className="prose prose-sm max-w-none text-[#1c1a16] leading-relaxed"
-            style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+            className="prose prose-sm max-w-none text-[#1c1a16] leading-relaxed overflow-y-auto pr-2"
+            style={{ fontFamily: "var(--font-playfair, Georgia, serif)", maxHeight: "60vh" }}
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{story}</ReactMarkdown>
           </div>
