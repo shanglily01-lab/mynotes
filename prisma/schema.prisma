@@ -173,6 +173,31 @@ model HSWrongAnswer {
   @@index([createdAt(sort: Desc)])
 }
 
+model SchoolMaterial {
+  id           String   @id @default(cuid())
+  level        String   // primary | middle
+  subject      String
+  basicPath    String?  @db.VarChar(500)
+  advancedPath String?  @db.VarChar(500)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([level, subject])
+  @@index([level])
+}
+
+model SchoolWrongAnswer {
+  id           String   @id @default(cuid())
+  level        String   // primary | middle
+  subject      String
+  imagePath    String?  @db.VarChar(500)
+  mimeType     String?  @db.VarChar(100)
+  analysisJson String?  @db.LongText
+  createdAt    DateTime @default(now())
+
+  @@index([level, subject])
+  @@index([createdAt(sort: Desc)])
+}
+
 model BookDownload {
   id        String   @id @default(cuid())
   subjectId String

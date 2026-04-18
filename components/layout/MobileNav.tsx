@@ -18,6 +18,8 @@ const DRAWER_NAV = [
   { href: "/books",         label: "书籍笔记" },
   { href: "/subjects/news", label: "每日新闻" },
   { href: "/health",        label: "疾病管理" },
+  { href: "/primary",       label: "小学学习" },
+  { href: "/middle",        label: "初中学习" },
   { href: "/highschool",    label: "高中学习" },
 ];
 

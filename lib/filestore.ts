@@ -10,10 +10,12 @@ const DIRS = {
   progress: path.join(DATA_DIR, "progress"),
   materials: path.join(DATA_DIR, "materials"),
   cases: path.join(DATA_DIR, "cases"),
-  "hs-materials": path.join(DATA_DIR, "hs-materials"),
+  "hs-materials":     path.join(DATA_DIR, "hs-materials"),
+  "school-materials": path.join(DATA_DIR, "school-materials"),
 } as const;
 
-export const HS_WRONG_ANSWERS_DIR = path.join(DATA_DIR, "hs-wrong-answers");
+export const HS_WRONG_ANSWERS_DIR     = path.join(DATA_DIR, "hs-wrong-answers");
+export const SCHOOL_WRONG_ANSWERS_DIR = path.join(DATA_DIR, "school-wrong-answers");
 
 type StoreDir = keyof typeof DIRS;
 

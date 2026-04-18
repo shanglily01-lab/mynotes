@@ -11,6 +11,26 @@ const MAIN_NAV = [
   { href: "/monthly",  label: "月度回顾" },
 ];
 
+const PRIMARY_SCHOOL = [
+  { href: "/primary/chinese",   label: "语文",       color: "#8b1a2a" },
+  { href: "/primary/math",      label: "数学",       color: "#1a3870" },
+  { href: "/primary/english",   label: "英语",       color: "#1a5c3a" },
+  { href: "/primary/science",   label: "科学",       color: "#2d5a1a" },
+  { href: "/primary/ethics",    label: "道德与法治", color: "#5a2d70" },
+];
+
+const MIDDLE_SCHOOL = [
+  { href: "/middle/chinese",   label: "语文",       color: "#8b1a2a" },
+  { href: "/middle/math",      label: "数学",       color: "#1a3870" },
+  { href: "/middle/english",   label: "英语",       color: "#1a5c3a" },
+  { href: "/middle/physics",   label: "物理",       color: "#2d1a70" },
+  { href: "/middle/chemistry", label: "化学",       color: "#7a4a00" },
+  { href: "/middle/biology",   label: "生物",       color: "#1a5c20" },
+  { href: "/middle/history",   label: "历史",       color: "#5a3a1a" },
+  { href: "/middle/geography", label: "地理",       color: "#1a4a5c" },
+  { href: "/middle/ethics",    label: "道德与法治", color: "#5a2d70" },
+];
+
 const HIGH_SCHOOL = [
   { href: "/highschool/chinese",   label: "语文", color: "#8b1a2a" },
   { href: "/highschool/math",      label: "数学", color: "#1a3870" },
@@ -95,30 +115,36 @@ export default function Sidebar() {
           ))}
         </div>
 
-        <div>
-          <SectionLabel>高中</SectionLabel>
-          {HIGH_SCHOOL.map((s) => {
-            const active = pathname === s.href || pathname.startsWith(s.href + "/");
-            return (
-              <Link
-                key={s.href}
-                href={s.href}
-                className={`flex items-center gap-2 text-[13px] px-2 py-1 mb-0.5 border-l-2 transition-colors ${
-                  active
-                    ? "text-[#1c1a16] font-semibold"
-                    : "border-transparent text-[#5a5550] hover:text-[#1c1a16] hover:border-[#d8d4ca]"
-                }`}
-                style={active ? { borderColor: s.color } : undefined}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: s.color, opacity: active ? 1 : 0.6 }}
-                />
-                {s.label}
-              </Link>
-            );
-          })}
-        </div>
+        {[
+          { label: "小学", items: PRIMARY_SCHOOL },
+          { label: "初中", items: MIDDLE_SCHOOL },
+          { label: "高中", items: HIGH_SCHOOL },
+        ].map(({ label, items }) => (
+          <div key={label}>
+            <SectionLabel>{label}</SectionLabel>
+            {items.map((s) => {
+              const active = pathname === s.href || pathname.startsWith(s.href + "/");
+              return (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  className={`flex items-center gap-2 text-[13px] px-2 py-1 mb-0.5 border-l-2 transition-colors ${
+                    active
+                      ? "text-[#1c1a16] font-semibold"
+                      : "border-transparent text-[#5a5550] hover:text-[#1c1a16] hover:border-[#d8d4ca]"
+                  }`}
+                  style={active ? { borderColor: s.color } : undefined}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: s.color, opacity: active ? 1 : 0.6 }}
+                  />
+                  {s.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
 
         <div>
           <SectionLabel>学科</SectionLabel>
