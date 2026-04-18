@@ -56,6 +56,7 @@ const TOOLS = [
   { href: "/books",            label: "书籍笔记" },
   { href: "/chat",             label: "AI 助手" },
   { href: "/health",           label: "疾病管理" },
+  { href: "/story",            label: "英雄传说" },
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
