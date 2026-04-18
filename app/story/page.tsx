@@ -92,6 +92,12 @@ export default function StoryPage() {
   const [paused, setPaused] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // Portraits: 5 slots, null = not generated, "loading" = in progress, string = base64
+  const [portraits, setPortraits] = useState<(string | "loading" | null)[]>(Array(5).fill(null));
+  const [portraitErrors, setPortraitErrors] = useState<(string | null)[]>(Array(5).fill(null));
+
+  const PORTRAIT_LABELS = ["史诗全身", "英雄特写", "战斗英姿", "沉思时刻", "暗黑氛围"];
+
   const selectedRace = RACES.find((r) => r.id === selectedRaceId) ?? RACES[0]!;
   const selectedHero = selectedRace.heroes.find((h) => h.id === selectedHeroId) ?? null;
 
@@ -149,12 +155,51 @@ export default function StoryPage() {
     }
   }
 
+  function resetPortraits() {
+    setPortraits(Array(5).fill(null));
+    setPortraitErrors(Array(5).fill(null));
+  }
+
   function selectRace(raceId: string) {
     stopSpeech();
     setSelectedRaceId(raceId);
     setSelectedHeroId(null);
     setStory("");
     setError("");
+    resetPortraits();
+  }
+
+  async function generatePortrait(styleIndex: number) {
+    if (!selectedHero) return;
+    setPortraits((prev) => { const n = [...prev]; n[styleIndex] = "loading"; return n; });
+    setPortraitErrors((prev) => { const n = [...prev]; n[styleIndex] = null; return n; });
+    try {
+      const res = await fetch("/api/story/portrait", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          heroId: selectedHero.id,
+          heroName: selectedHero.name,
+          raceName: selectedRace.name,
+          styleIndex,
+        }),
+      });
+      const data = (await res.json()) as { imageBase64?: string; mimeType?: string; error?: string };
+      if (!res.ok || data.error) {
+        setPortraitErrors((prev) => { const n = [...prev]; n[styleIndex] = data.error ?? "生成失败"; return n; });
+        setPortraits((prev) => { const n = [...prev]; n[styleIndex] = null; return n; });
+      } else {
+        const src = `data:${data.mimeType ?? "image/png"};base64,${data.imageBase64}`;
+        setPortraits((prev) => { const n = [...prev]; n[styleIndex] = src; return n; });
+      }
+    } catch {
+      setPortraitErrors((prev) => { const n = [...prev]; n[styleIndex] = "网络错误"; return n; });
+      setPortraits((prev) => { const n = [...prev]; n[styleIndex] = null; return n; });
+    }
+  }
+
+  function generateAllPortraits() {
+    for (let i = 0; i < 5; i++) void generatePortrait(i);
   }
 
   async function generateStory() {
@@ -240,9 +285,11 @@ export default function StoryPage() {
               <button
                 key={hero.id}
                 onClick={() => {
+                  stopSpeech();
                   setSelectedHeroId(hero.id);
                   setStory("");
                   setError("");
+                  resetPortraits();
                 }}
                 className="border text-left px-3 py-3 transition-all"
                 style={
@@ -381,6 +428,63 @@ export default function StoryPage() {
             style={{ fontFamily: "var(--font-playfair, Georgia, serif)", maxHeight: "60vh" }}
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{story}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Portrait gallery — shown once a hero is selected */}
+      {selectedHero && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] tracking-[0.18em] uppercase text-[#9a9590]">英雄画像</p>
+            <button
+              onClick={generateAllPortraits}
+              disabled={portraits.some((p) => p === "loading")}
+              className="px-4 py-1.5 text-[12px] font-semibold text-white transition-colors disabled:opacity-50"
+              style={{ backgroundColor: portraits.some((p) => p === "loading") ? "#9a9590" : selectedRace.color }}
+            >
+              {portraits.some((p) => p === "loading") ? "生成中..." : "生成全部画像"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {PORTRAIT_LABELS.map((label, i) => {
+              const portrait = portraits[i];
+              const err = portraitErrors[i];
+              return (
+                <div key={i} className="border border-[#d8d4ca] overflow-hidden" style={{ aspectRatio: "1/1" }}>
+                  {portrait === "loading" ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#f5f2eb] animate-pulse">
+                      <div className="w-8 h-8 border-2 border-[#d8d4ca] border-t-transparent rounded-full animate-spin" style={{ borderTopColor: selectedRace.color }} />
+                      <span className="text-[11px] text-[#9a9590]">{label} 生成中</span>
+                    </div>
+                  ) : portrait ? (
+                    <div className="relative w-full h-full group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={portrait} alt={`${selectedHero.name} ${label}`} className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5 flex items-center justify-between">
+                        <span className="text-[11px] text-white font-medium">{label}</span>
+                        <button
+                          onClick={() => void generatePortrait(i)}
+                          className="text-[10px] text-white/70 hover:text-white transition-colors"
+                        >
+                          重新生成
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => void generatePortrait(i)}
+                      className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#f5f2eb] hover:bg-[#ede9e0] transition-colors"
+                    >
+                      <span className="text-[22px] opacity-30">+</span>
+                      <span className="text-[12px] font-medium" style={{ color: selectedRace.color }}>{label}</span>
+                      {err && <span className="text-[10px] text-[#7a1c30] px-2 text-center">{err}</span>}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
