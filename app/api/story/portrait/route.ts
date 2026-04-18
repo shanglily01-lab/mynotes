@@ -8,23 +8,23 @@ export const maxDuration = 60;
 const PORTRAIT_STYLES = [
   {
     label: "史诗全身",
-    suffix: "epic full body warrior pose, detailed fantasy armor or magical robes, dramatic cinematic lighting, ancient stone environment, Blizzard Entertainment digital painting style, masterpiece",
+    suffix: "epic full body pose, Warcraft III The Frozen Throne official splash art style, Blizzard Entertainment 2003 RTS game character art, detailed fantasy armor with glowing runes, dramatic cinematic lighting, ancient Northrend stone environment",
   },
   {
     label: "英雄特写",
-    suffix: "close-up face portrait, intense heroic expression, glowing magical eyes, dark atmospheric background with particle effects, ultra detailed skin and features, dramatic rim lighting",
+    suffix: "close-up face portrait, Warcraft III The Frozen Throne hero portrait style, Blizzard concept art, intense heroic expression, dark atmospheric background with icy blue particle effects, ultra detailed features, dramatic rim lighting",
   },
   {
     label: "战斗英姿",
-    suffix: "dynamic battle action pose, using signature ability, glowing magical energy effects, motion blur on weapon, epic chaotic battle background, Warcraft III splash art style",
+    suffix: "dynamic battle action pose, Warcraft III The Frozen Throne loading screen art style, using signature ability, glowing magical energy, Northrend frozen tundra battlefield background, Blizzard RTS game art 2003",
   },
   {
     label: "沉思时刻",
-    suffix: "standing alone in contemplation, melancholic noble atmosphere, soft moonlight or firelight, detailed natural environment, painterly impressionistic style, emotional depth",
+    suffix: "standing alone in contemplation, Warcraft III The Frozen Throne cinematic art style, melancholic noble atmosphere, soft moonlight over icy Northrend landscape, Blizzard Entertainment painterly style, emotional depth",
   },
   {
     label: "暗黑氛围",
-    suffix: "dark moody atmospheric portrait, deep dramatic shadows, glowing mystical energy emanating from body, ominous stormy sky, high contrast chiaroscuro lighting, ominous power",
+    suffix: "dark moody portrait, Warcraft III The Frozen Throne undead aesthetic, deep dramatic shadows, glowing fel or frost energy, ominous frozen stormy sky, Icecrown Citadel atmosphere, Blizzard dark fantasy art",
   },
 ];
 
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     ? `, ${REGEN_MODIFIERS[(nextVersion - 2) % REGEN_MODIFIERS.length]}`
     : "";
 
-  const prompt = `Fantasy portrait artwork of ${heroDesc}. ${style.suffix}${regenMod}. No text, no watermark, no UI elements, ultra high quality illustration.`;
+  const prompt = `Warcraft III The Frozen Throne official game art illustration of ${heroDesc}. ${style.suffix}${regenMod}. Blizzard Entertainment art style, 2003 RTS game aesthetic. No text, no watermark, no UI elements, ultra high quality digital painting.`;
 
   const apiKey = process.env["OPENAI_API_KEY"];
   if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY not set" }, { status: 500 });
