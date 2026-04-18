@@ -112,21 +112,26 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "google-key not set" }, { status: 500 });
 
   const ai = new GoogleGenAI({ apiKey });
-  const result = await ai.models.generateImages({
-    model: "imagen-3.0-generate-001",
-    prompt,
-    config: { numberOfImages: 1, aspectRatio: "1:1" },
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash-preview-image-generation",
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    config: { responseModalities: ["IMAGE"] },
   });
 
-  const imageBytes = result.generatedImages?.[0]?.image?.imageBytes;
+  const parts = result.candidates?.[0]?.content?.parts ?? [];
+  const imagePart = parts.find((p) => p.inlineData?.data);
+  const imageBytes = imagePart?.inlineData?.data;
+  const mimeType = imagePart?.inlineData?.mimeType ?? "image/png";
+  const ext = mimeType.includes("jpeg") ? "jpg" : "png";
+
   if (!imageBytes) {
-    console.error("[portrait] no image bytes returned", result);
+    console.error("[portrait] no image bytes returned", JSON.stringify(result).slice(0, 300));
     return NextResponse.json({ error: "未返回图像数据" }, { status: 500 });
   }
 
   const buf = Buffer.from(imageBytes, "base64");
   const fileId = `${heroId}-${styleIndex}`;
-  const filePath = await writeBinary("hero-portraits", fileId, "png", buf);
+  const filePath = await writeBinary("hero-portraits", fileId, ext, buf);
 
   await prisma.heroPortrait.upsert({
     where: { heroId_styleIndex: { heroId, styleIndex } },
@@ -134,6 +139,6 @@ export async function POST(req: NextRequest) {
     update: { filePath, version: nextVersion },
   });
 
-  const imageSrc = `data:image/png;base64,${imageBytes}`;
+  const imageSrc = `data:${mimeType};base64,${imageBytes}`;
   return NextResponse.json({ imageSrc, label: style.label, version: nextVersion });
 }
