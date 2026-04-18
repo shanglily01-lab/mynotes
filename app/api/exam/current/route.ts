@@ -19,7 +19,7 @@ export async function GET() {
   if (!exam) return NextResponse.json({ exam: null });
 
   const questionsWithContent = await Promise.all(
-    exam.questions.map(async (q) => {
+    exam.questions.map(async (q: (typeof exam.questions)[number]) => {
       const raw = await readText(q.contentPath);
       let question = "";
       let explain = "";
