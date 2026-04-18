@@ -44,21 +44,24 @@ export async function POST(req: NextRequest) {
 
   const focus = storyTypeMap[storyType] ?? storyTypeMap["origin"];
 
-  const prompt = `你是一位擅长魔兽世界故事的中文作家。请为以下英雄撰写一段沉浸式的中文故事（约800-1000字）。
+  const prompt = `你是一位擅长魔兽世界故事的中文作家。请为以下英雄撰写一篇完整的中文故事（2500-3000字）。
 
 英雄：${heroName}（${raceName}）
 背景：${lore}
 故事焦点：${focus}
 
 要求：
-- 以第三人称叙事，语言优美、有感染力
-- 融入魔兽争霸三的经典场景与台词氛围
-- 涵盖英雄的核心性格特征与标志性能力
-- 结尾要有力量感或余韵
-- 不要加标题，直接进入正文`;
+- 以第三人称叙事，语言优美、有感染力、富有史诗感
+- 详细展开故事情节，有场景描写、对话、内心独白
+- 融入魔兽争霸三的经典战役场景与台词氛围
+- 涵盖英雄的成长经历、核心性格特征与标志性能力
+- 分多个段落，每段有明确的叙事推进
+- 结尾要有力量感或深远余韵
+- 不要加标题，直接进入正文
+- 必须写满2500字以上，不要提前结束`;
 
   try {
-    const story = await ask(prompt, 2048);
+    const story = await ask(prompt, 6000);
     return NextResponse.json({ story });
   } catch (err) {
     console.error("[story] AI generation failed:", err);
