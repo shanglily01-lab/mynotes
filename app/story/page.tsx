@@ -489,12 +489,21 @@ export default function StoryPage() {
                       <img src={portrait} alt={`${selectedHero.name} ${label}`} className="w-full h-full object-cover" />
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5 flex items-center justify-between">
                         <span className="text-[11px] text-white font-medium">{label}</span>
-                        <button
-                          onClick={() => void generatePortrait(i)}
-                          className="text-[10px] text-white/70 hover:text-white transition-colors"
-                        >
-                          重新生成
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={portrait}
+                            download={`${selectedHero.name}-${label}.png`}
+                            className="text-[10px] text-white/70 hover:text-white transition-colors"
+                          >
+                            保存
+                          </a>
+                          <button
+                            onClick={() => void generatePortrait(i)}
+                            className="text-[10px] text-white/70 hover:text-white transition-colors"
+                          >
+                            重新生成
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
