@@ -112,11 +112,18 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return NextResponse.json({ error: "google-key not set" }, { status: 500 });
 
   const ai = new GoogleGenAI({ apiKey });
-  const result = await ai.models.generateContent({
-    model: "gemini-2.0-flash-preview-image-generation",
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    config: { responseModalities: ["IMAGE"] },
-  });
+  let result;
+  try {
+    result = await ai.models.generateContent({
+      model: "gemini-2.0-flash-preview-image-generation",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { responseModalities: ["IMAGE"] },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[portrait] generateContent error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 
   const parts = result.candidates?.[0]?.content?.parts ?? [];
   const imagePart = parts.find((p) => p.inlineData?.data);
