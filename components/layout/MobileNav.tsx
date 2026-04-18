@@ -5,34 +5,33 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 const BOTTOM_TABS = [
-  { href: "/",        label: "首页" },
-  { href: "/plan",    label: "计划" },
-  { href: "/chat",    label: "AI",  center: true },
-  { href: "/english", label: "英语" },
+  { href: "/",     label: "首页" },
+  { href: "/plan", label: "计划" },
+  { href: "/chat", label: "AI", center: true },
 ];
 
-const TOOLS = [
-  { href: "/exam",          label: "每周考试" },
-  { href: "/progress",      label: "学习进度" },
-  { href: "/monthly",       label: "月度回顾" },
-  { href: "/books",         label: "书籍笔记" },
-  { href: "/subjects/news", label: "每日新闻" },
-  { href: "/health",        label: "疾病管理" },
-  { href: "/story",         label: "英雄传说" },
+const MY_ITEMS = [
+  { href: "/exam",           label: "每周考试" },
+  { href: "/progress",       label: "学习进度" },
+  { href: "/monthly",        label: "阅读回顾" },
+  { href: "/books",          label: "书籍笔记" },
+  { href: "/health",         label: "疾病管理" },
+  { href: "/story",          label: "英雄传说" },
+  { href: "/english",        label: "每日英语" },
+  { href: "/subjects/news",  label: "每日新闻" },
 ];
 
-type SubjectItem = { href: string; label: string; color: string };
-
-const SECTIONS: { key: string; label: string; subjects: SubjectItem[] }[] = [
+const MORE_SECTIONS: { key: string; label: string; subjects: { href: string; label: string; color: string }[] }[] = [
   {
-    key: "primary",
-    label: "小学",
+    key: "high",
+    label: "高中",
     subjects: [
-      { href: "/primary/chinese",   label: "语文",       color: "#8b1a2a" },
-      { href: "/primary/math",      label: "数学",       color: "#1a3870" },
-      { href: "/primary/english",   label: "英语",       color: "#1a5c3a" },
-      { href: "/primary/science",   label: "科学",       color: "#2d5a1a" },
-      { href: "/primary/ethics",    label: "道德与法治", color: "#5a2d70" },
+      { href: "/highschool/chinese",   label: "语文", color: "#8b1a2a" },
+      { href: "/highschool/math",      label: "数学", color: "#1a3870" },
+      { href: "/highschool/english",   label: "英语", color: "#1a5c3a" },
+      { href: "/highschool/physics",   label: "物理", color: "#2d1a70" },
+      { href: "/highschool/chemistry", label: "化学", color: "#7a4a00" },
+      { href: "/highschool/biology",   label: "生物", color: "#1a5c20" },
     ],
   },
   {
@@ -51,28 +50,30 @@ const SECTIONS: { key: string; label: string; subjects: SubjectItem[] }[] = [
     ],
   },
   {
-    key: "high",
-    label: "高中",
+    key: "primary",
+    label: "小学",
     subjects: [
-      { href: "/highschool/chinese",   label: "语文", color: "#8b1a2a" },
-      { href: "/highschool/math",      label: "数学", color: "#1a3870" },
-      { href: "/highschool/english",   label: "英语", color: "#1a5c3a" },
-      { href: "/highschool/physics",   label: "物理", color: "#2d1a70" },
-      { href: "/highschool/chemistry", label: "化学", color: "#7a4a00" },
-      { href: "/highschool/biology",   label: "生物", color: "#1a5c20" },
+      { href: "/primary/chinese",  label: "语文",       color: "#8b1a2a" },
+      { href: "/primary/math",     label: "数学",       color: "#1a3870" },
+      { href: "/primary/english",  label: "英语",       color: "#1a5c3a" },
+      { href: "/primary/science",  label: "科学",       color: "#2d5a1a" },
+      { href: "/primary/ethics",   label: "道德与法治", color: "#5a2d70" },
     ],
   },
   {
     key: "subjects",
-    label: "拓展学科",
+    label: "学科",
     subjects: [
-      { href: "/subjects/psychology", label: "心理学",   color: "#6b2d6e" },
-      { href: "/subjects/biology",    label: "生物学",   color: "#1a5c34" },
-      { href: "/subjects/physics",    label: "物理学",   color: "#003087" },
-      { href: "/subjects/sociology",  label: "社会学",   color: "#7a4018" },
-      { href: "/subjects/philosophy", label: "哲学",     color: "#3a2870" },
-      { href: "/subjects/theology",   label: "神学",     color: "#7a1c30" },
-      { href: "/subjects/medicine",   label: "现代医学", color: "#1a5c4a" },
+      { href: "/subjects/psychology", label: "心理学",        color: "#6b2d6e" },
+      { href: "/subjects/biology",    label: "生物学",        color: "#1a5c34" },
+      { href: "/subjects/physics",    label: "物理学",        color: "#003087" },
+      { href: "/subjects/sociology",  label: "社会学",        color: "#7a4018" },
+      { href: "/subjects/ai-theory",  label: "AI 理论基础",  color: "#1a4a5c" },
+      { href: "/subjects/google-ai",  label: "GoogleAI 动态", color: "#1a5c3a" },
+      { href: "/subjects/anthropic",  label: "Anthropic 动态", color: "#3a1a5c" },
+      { href: "/subjects/philosophy", label: "哲学",          color: "#3a2870" },
+      { href: "/subjects/theology",   label: "神学",          color: "#7a1c30" },
+      { href: "/subjects/medicine",   label: "现代医学",      color: "#1a5c4a" },
     ],
   },
 ];
@@ -87,44 +88,43 @@ function getDefaultExpanded(pathname: string): string | null {
 
 export default function MobileNav() {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [drawer, setDrawer] = useState<"my" | "more" | null>(null);
   const [expanded, setExpanded] = useState<string | null>(() => getDefaultExpanded(pathname));
 
-  // Close drawer on navigation, update expanded to match new path
   useEffect(() => {
-    setOpen(false);
+    setDrawer(null);
     setExpanded(getDefaultExpanded(pathname));
   }, [pathname]);
 
-  const moreActive =
-    TOOLS.some((i) => pathname.startsWith(i.href)) ||
-    SECTIONS.some((s) => s.subjects.some((sub) => pathname.startsWith(sub.href)));
+  const myActive = MY_ITEMS.some((i) => pathname.startsWith(i.href));
+  const moreActive = MORE_SECTIONS.some((s) => s.subjects.some((sub) => pathname.startsWith(sub.href)));
 
   function toggleSection(key: string) {
     setExpanded((prev) => (prev === key ? null : key));
   }
 
+  function toggleDrawer(d: "my" | "more") {
+    setDrawer((prev) => (prev === d ? null : d));
+  }
+
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setOpen(false)} />
+      {drawer && (
+        <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setDrawer(null)} />
       )}
 
-      {/* Drawer — slides up from bottom */}
+      {/* "我的" drawer */}
       <div
         className={`fixed left-0 right-0 bottom-[56px] bg-[#f5f2eb] border-t border-[#d8d4ca] z-50 md:hidden transition-transform duration-250 ease-out ${
-          open ? "translate-y-0" : "translate-y-full"
+          drawer === "my" ? "translate-y-0" : "translate-y-full"
         }`}
-        style={{ maxHeight: "72vh", overflowY: "auto" }}
+        style={{ maxHeight: "60vh", overflowY: "auto" }}
       >
         <div className="px-4 pt-3 pb-6">
-          {/* Drag handle */}
           <div className="w-8 h-0.5 bg-[#d8d4ca] mx-auto mb-4" />
-
-          {/* Tools grid */}
-          <p className="text-[9px] tracking-[0.18em] uppercase text-[#9a9590] mb-2">工具</p>
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            {TOOLS.map((item) => {
+          <p className="text-[9px] tracking-[0.18em] uppercase text-[#9a9590] mb-2">我的</p>
+          <div className="grid grid-cols-4 gap-2">
+            {MY_ITEMS.map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <Link
@@ -141,23 +141,30 @@ export default function MobileNav() {
               );
             })}
           </div>
+        </div>
+      </div>
 
-          {/* Expandable school / subject sections */}
+      {/* "更多" drawer */}
+      <div
+        className={`fixed left-0 right-0 bottom-[56px] bg-[#f5f2eb] border-t border-[#d8d4ca] z-50 md:hidden transition-transform duration-250 ease-out ${
+          drawer === "more" ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ maxHeight: "72vh", overflowY: "auto" }}
+      >
+        <div className="px-4 pt-3 pb-6">
+          <div className="w-8 h-0.5 bg-[#d8d4ca] mx-auto mb-4" />
           <div className="space-y-1">
-            {SECTIONS.map((section) => {
+            {MORE_SECTIONS.map((section) => {
               const isExpanded = expanded === section.key;
               const sectionActive = section.subjects.some((s) => pathname.startsWith(s.href));
               return (
                 <div key={section.key} className="border border-[#d8d4ca]" style={{ backgroundColor: isExpanded ? "#fff" : "#f5f2eb" }}>
-                  {/* Section header */}
                   <button
                     onClick={() => toggleSection(section.key)}
                     className="w-full flex items-center justify-between px-4 py-2.5"
                   >
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[13px] font-semibold ${sectionActive ? "text-[#003087]" : "text-[#1c1a16]"}`}
-                      >
+                      <span className={`text-[13px] font-semibold ${sectionActive ? "text-[#003087]" : "text-[#1c1a16]"}`}>
                         {section.label}
                       </span>
                       <span className="text-[10px] text-[#9a9590]">{section.subjects.length} 科</span>
@@ -166,8 +173,6 @@ export default function MobileNav() {
                       ▼
                     </span>
                   </button>
-
-                  {/* Subjects grid */}
                   {isExpanded && (
                     <div className="px-3 pb-3 grid grid-cols-3 gap-1.5 border-t border-[#e4e0d8] pt-2.5">
                       {section.subjects.map((s) => {
@@ -177,9 +182,7 @@ export default function MobileNav() {
                             key={s.href}
                             href={s.href}
                             className={`flex items-center gap-1.5 py-2 px-2 border text-[12px] transition-colors ${
-                              active
-                                ? "bg-white font-semibold"
-                                : "border-[#e4e0d8] text-[#5a5550]"
+                              active ? "bg-white font-semibold" : "border-[#e4e0d8] text-[#5a5550]"
                             }`}
                             style={active ? { borderColor: s.color, color: s.color } : undefined}
                           >
@@ -232,9 +235,18 @@ export default function MobileNav() {
         })}
 
         <button
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => toggleDrawer("my")}
           className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-[11px] tracking-wide transition-colors ${
-            moreActive || open ? "text-[#003087] font-semibold" : "text-[#9a9590]"
+            myActive || drawer === "my" ? "text-[#003087] font-semibold" : "text-[#9a9590]"
+          }`}
+        >
+          我的
+        </button>
+
+        <button
+          onClick={() => toggleDrawer("more")}
+          className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 text-[11px] tracking-wide transition-colors ${
+            moreActive || drawer === "more" ? "text-[#003087] font-semibold" : "text-[#9a9590]"
           }`}
         >
           更多

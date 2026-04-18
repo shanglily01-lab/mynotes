@@ -41,13 +41,16 @@ const HIGH_SCHOOL = [
 ];
 
 const SUBJECTS = [
-  { href: "/subjects/psychology", label: "心理学",    color: "#6b2d6e" },
-  { href: "/subjects/biology",    label: "生物学",    color: "#1a5c34" },
-  { href: "/subjects/physics",    label: "物理学",    color: "#003087" },
-  { href: "/subjects/sociology",  label: "社会学",    color: "#7a4018" },
-  { href: "/subjects/philosophy", label: "哲学",      color: "#3a2870" },
-  { href: "/subjects/theology",   label: "神学",      color: "#7a1c30" },
-  { href: "/subjects/medicine",   label: "现代医学",  color: "#1a5c4a" },
+  { href: "/subjects/psychology", label: "心理学",        color: "#6b2d6e" },
+  { href: "/subjects/biology",    label: "生物学",        color: "#1a5c34" },
+  { href: "/subjects/physics",    label: "物理学",        color: "#003087" },
+  { href: "/subjects/sociology",  label: "社会学",        color: "#7a4018" },
+  { href: "/subjects/ai-theory",  label: "AI 理论基础",  color: "#1a4a5c" },
+  { href: "/subjects/google-ai",  label: "GoogleAI 动态", color: "#1a5c3a" },
+  { href: "/subjects/anthropic",  label: "Anthropic 动态", color: "#3a1a5c" },
+  { href: "/subjects/philosophy", label: "哲学",          color: "#3a2870" },
+  { href: "/subjects/theology",   label: "神学",          color: "#7a1c30" },
+  { href: "/subjects/medicine",   label: "现代医学",      color: "#1a5c4a" },
 ];
 
 const TOOLS = [
