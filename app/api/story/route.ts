@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { prisma } from "@/lib/db";
+import { writeMarkdown, readMarkdown } from "@/lib/filestore";
 
-// Longer timeout for story generation
 export const maxDuration = 120;
 
 const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
@@ -24,6 +25,32 @@ const HERO_LORE: Record<string, string> = {
   kelthuzad: "科尔苏斯，巫妖王第一使徒，曾为达拉然法师，出卖灵魂换取亡灵力量，建立天灾军团",
   anubarak:  "安纳祖，虫族领主，古老的永恒国度君主，被巫妖王复活为亡灵仆从",
 };
+
+const VARIATION_HINTS = [
+  "从童年创伤与内心恐惧的角度切入",
+  "聚焦于与至亲之人的情感羁绊与决裂",
+  "以一场决定命运的孤独之夜为核心",
+  "探索英雄内心的矛盾与自我怀疑",
+  "从敌人或旁观者的视角审视这位英雄",
+  "以英雄生命中最后悔的一个决定为主线",
+  "聚焦于荣耀背后不为人知的代价",
+  "从信仰崩塌与重建的维度展开叙述",
+];
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const heroId = searchParams.get("heroId");
+  const storyType = searchParams.get("storyType");
+  if (!heroId || !storyType) return NextResponse.json({ story: null });
+
+  const record = await prisma.heroStory.findUnique({
+    where: { heroId_storyType: { heroId, storyType } },
+  });
+  if (!record?.filePath) return NextResponse.json({ story: null, version: 0 });
+
+  const story = await readMarkdown(record.filePath);
+  return NextResponse.json({ story: story || null, version: record.version });
+}
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
@@ -49,6 +76,15 @@ export async function POST(req: NextRequest) {
 
   const focus = storyTypeMap[storyType] ?? storyTypeMap["origin"];
 
+  // Get current version to add variation hint on regeneration
+  const existing = await prisma.heroStory.findUnique({
+    where: { heroId_storyType: { heroId, storyType } },
+  });
+  const nextVersion = (existing?.version ?? 0) + 1;
+  const variationHint = nextVersion > 1
+    ? `\n- 这是第${nextVersion}个版本，请${VARIATION_HINTS[(nextVersion - 2) % VARIATION_HINTS.length]}，风格与结构要与之前版本明显不同`
+    : "";
+
   const prompt = `你是一位擅长魔兽世界故事的中文作家。请为以下英雄撰写一篇完整的中文故事（2500-3000字）。
 
 英雄：${heroName}（${raceName}）
@@ -63,17 +99,25 @@ export async function POST(req: NextRequest) {
 - 分多个段落，每段有明确的叙事推进
 - 结尾要有力量感或深远余韵
 - 不要加标题，直接进入正文
-- 必须写满2500字以上，不要提前结束`;
+- 必须写满2500字以上，不要提前结束${variationHint}`;
 
   try {
-    // Use Gemini directly with thinking disabled so all tokens go to story output
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const generationConfig: any = { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } };
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig });
-
     const result = await model.generateContent(prompt);
     const story = result.response.text();
-    return NextResponse.json({ story });
+
+    // Save to file and DB
+    const fileId = `${heroId}-${storyType}`;
+    const filePath = await writeMarkdown("hero-stories", fileId, story);
+    await prisma.heroStory.upsert({
+      where: { heroId_storyType: { heroId, storyType } },
+      create: { heroId, storyType, filePath, version: nextVersion },
+      update: { filePath, version: nextVersion },
+    });
+
+    return NextResponse.json({ story, version: nextVersion });
   } catch (err) {
     console.error("[story] AI generation failed:", err);
     return NextResponse.json({ error: "生成失败，请稍后重试" }, { status: 500 });

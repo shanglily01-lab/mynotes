@@ -92,7 +92,9 @@ export default function StoryPage() {
   const [paused, setPaused] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Portraits: 5 slots, null = not generated, "loading" = in progress, string = base64
+  const [storyVersion, setStoryVersion] = useState(0);
+  const [loadingStory, setLoadingStory] = useState(false);
+  // Portraits: 5 slots, null = not generated, "loading" = in progress, string = src
   const [portraits, setPortraits] = useState<(string | "loading" | null)[]>(Array(5).fill(null));
   const [portraitErrors, setPortraitErrors] = useState<(string | null)[]>(Array(5).fill(null));
 
@@ -110,6 +112,34 @@ export default function StoryPage() {
     if (story) stopSpeech();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story]);
+
+  // Load saved story + portraits when hero or storyType changes
+  useEffect(() => {
+    if (!selectedHero) return;
+    void loadSaved(selectedHero.id, storyType);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHero?.id, storyType]);
+
+  async function loadSaved(heroId: string, type: string) {
+    setLoadingStory(true);
+    setStory("");
+    setStoryVersion(0);
+    try {
+      const res = await fetch(`/api/story?heroId=${heroId}&storyType=${type}`);
+      const data = (await res.json()) as { story?: string | null; version?: number };
+      setStory(data.story ?? "");
+      setStoryVersion(data.version ?? 0);
+    } finally {
+      setLoadingStory(false);
+    }
+    // Load portraits
+    setPortraits(Array(5).fill(null));
+    try {
+      const pRes = await fetch(`/api/story/portrait?heroId=${heroId}`);
+      const pData = (await pRes.json()) as { portraits?: (string | null)[] };
+      setPortraits(pData.portraits ?? Array(5).fill(null));
+    } catch { /* ignore */ }
+  }
 
   function stopSpeech() {
     window.speechSynthesis?.cancel();
@@ -184,13 +214,12 @@ export default function StoryPage() {
           styleIndex,
         }),
       });
-      const data = (await res.json()) as { imageBase64?: string; mimeType?: string; error?: string };
+      const data = (await res.json()) as { imageSrc?: string; error?: string };
       if (!res.ok || data.error) {
         setPortraitErrors((prev) => { const n = [...prev]; n[styleIndex] = data.error ?? "生成失败"; return n; });
         setPortraits((prev) => { const n = [...prev]; n[styleIndex] = null; return n; });
       } else {
-        const src = `data:${data.mimeType ?? "image/png"};base64,${data.imageBase64}`;
-        setPortraits((prev) => { const n = [...prev]; n[styleIndex] = src; return n; });
+        setPortraits((prev) => { const n = [...prev]; n[styleIndex] = data.imageSrc ?? null; return n; });
       }
     } catch {
       setPortraitErrors((prev) => { const n = [...prev]; n[styleIndex] = "网络错误"; return n; });
@@ -218,11 +247,12 @@ export default function StoryPage() {
           storyType,
         }),
       });
-      const data = (await res.json()) as { story?: string; error?: string };
+      const data = (await res.json()) as { story?: string; version?: number; error?: string };
       if (!res.ok || data.error) {
         setError(data.error ?? "生成失败");
       } else {
         setStory(data.story ?? "");
+        setStoryVersion(data.version ?? 1);
       }
     } catch {
       setError("网络错误，请重试");
@@ -334,22 +364,17 @@ export default function StoryPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               onClick={generateStory}
-              disabled={generating}
+              disabled={generating || loadingStory}
               className="px-6 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: generating ? "#9a9590" : selectedRace.color }}
+              style={{ backgroundColor: (generating || loadingStory) ? "#9a9590" : selectedRace.color }}
             >
-              {generating ? "AI 讲述中..." : `讲述 ${selectedHero.name} 的故事`}
+              {generating ? "AI 讲述中..." : story ? "重新生成（新版本）" : `讲述 ${selectedHero.name} 的故事`}
             </button>
-            {story && !generating && (
-              <button
-                onClick={generateStory}
-                className="px-4 py-2 text-[12px] border border-[#d8d4ca] text-[#5a5550] hover:border-[#003087] hover:text-[#003087] transition-colors"
-              >
-                重新生成
-              </button>
+            {storyVersion > 0 && !generating && (
+              <span className="text-[11px] text-[#9a9590]">第 {storyVersion} 版</span>
             )}
           </div>
         </div>
@@ -360,8 +385,8 @@ export default function StoryPage() {
         <p className="text-[13px] text-[#7a1c30] border-l-2 border-[#7a1c30] pl-3">{error}</p>
       )}
 
-      {/* Loading skeleton */}
-      {generating && (
+      {/* Loading skeleton — story loading or generating */}
+      {(generating || loadingStory) && (
         <div className="space-y-3 animate-pulse">
           {[80, 100, 90, 70, 95, 85].map((w, i) => (
             <div key={i} className="h-4 bg-[#e4e0d8] rounded" style={{ width: `${w}%` }} />
@@ -370,7 +395,7 @@ export default function StoryPage() {
       )}
 
       {/* Story output */}
-      {story && !generating && (
+      {story && !generating && !loadingStory && (
         <div
           className="border-l-4 pl-6 py-2"
           style={{ borderColor: selectedRace.color }}

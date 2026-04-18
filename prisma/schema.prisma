@@ -216,3 +216,27 @@ model BookDownload {
   @@index([subjectId])
   @@index([status])
 }
+
+model HeroStory {
+  id        String   @id @default(cuid())
+  heroId    String
+  storyType String
+  filePath  String?  @db.VarChar(500)
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@unique([heroId, storyType])
+  @@index([heroId])
+}
+
+model HeroPortrait {
+  id         String   @id @default(cuid())
+  heroId     String
+  styleIndex Int
+  filePath   String?  @db.VarChar(500)
+  version    Int      @default(1)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([heroId, styleIndex])
+  @@index([heroId])
+}
