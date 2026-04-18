@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { prisma } from "@/lib/db";
 import { writeBinary, readBinaryAsBase64 } from "@/lib/filestore";
 
@@ -108,37 +108,46 @@ export async function POST(req: NextRequest) {
 
   const prompt = `Fantasy portrait artwork of ${heroDesc}. ${style.suffix}${regenMod}. No text, no watermark, no UI elements, ultra high quality illustration.`;
 
-  const apiKey = process.env["google-key"];
-  if (!apiKey) return NextResponse.json({ error: "google-key not set" }, { status: 500 });
+  const apiKey = process.env["OPENAI_API_KEY"];
+  if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY not set" }, { status: 500 });
 
-  const ai = new GoogleGenAI({ apiKey });
-  let result;
+  const baseURL = process.env["OPENAI_API_URL"]
+    ? process.env["OPENAI_API_URL"].replace(/\/chat\/completions$/, "")
+    : undefined;
+
+  const openai = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+
+  let imageUrl: string;
   try {
-    result = await ai.models.generateContent({
-      model: "gemini-2.0-flash-preview-image-generation",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { responseModalities: ["IMAGE"] },
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt,
+      size: "1024x1024",
+      quality: "standard",
+      n: 1,
     });
+    const url = response.data?.[0]?.url;
+    if (!url) throw new Error("未返回图像 URL");
+    imageUrl = url;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[portrait] generateContent error:", msg);
+    console.error("[portrait] dall-e-3 error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  const parts = result.candidates?.[0]?.content?.parts ?? [];
-  const imagePart = parts.find((p) => p.inlineData?.data);
-  const imageBytes = imagePart?.inlineData?.data;
-  const mimeType = imagePart?.inlineData?.mimeType ?? "image/png";
-  const ext = mimeType.includes("jpeg") ? "jpg" : "png";
-
-  if (!imageBytes) {
-    console.error("[portrait] no image bytes returned", JSON.stringify(result).slice(0, 300));
-    return NextResponse.json({ error: "未返回图像数据" }, { status: 500 });
+  // Download and save locally
+  let buf: Buffer;
+  try {
+    const dl = await fetch(imageUrl);
+    buf = Buffer.from(await dl.arrayBuffer());
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[portrait] image download error:", msg);
+    return NextResponse.json({ error: "图片下载失败" }, { status: 500 });
   }
 
-  const buf = Buffer.from(imageBytes, "base64");
   const fileId = `${heroId}-${styleIndex}`;
-  const filePath = await writeBinary("hero-portraits", fileId, ext, buf);
+  const filePath = await writeBinary("hero-portraits", fileId, "png", buf);
 
   await prisma.heroPortrait.upsert({
     where: { heroId_styleIndex: { heroId, styleIndex } },
@@ -146,6 +155,7 @@ export async function POST(req: NextRequest) {
     update: { filePath, version: nextVersion },
   });
 
-  const imageSrc = `data:${mimeType};base64,${imageBytes}`;
+  const imageBytes = buf.toString("base64");
+  const imageSrc = `data:image/png;base64,${imageBytes}`;
   return NextResponse.json({ imageSrc, label: style.label, version: nextVersion });
 }
