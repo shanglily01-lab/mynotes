@@ -2,8 +2,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ask } from "./claude";
 import type { HSAnalysisResult } from "./claude";
 
-const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 const MODEL = "gemini-2.5-flash";
+
+function getGenAI(): GoogleGenerativeAI {
+  const key = process.env["google-key"];
+  if (!key) throw new Error("google-key env var not set");
+  return new GoogleGenerativeAI(key);
+}
 
 const clean = (s: string) =>
   s.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
@@ -215,7 +220,7 @@ export async function analyzeSchoolWrongAnswer(
   mimeType: string
 ): Promise<HSAnalysisResult> {
   const levelLabel = level === "primary" ? "小学" : "初中";
-  const model = genAI.getGenerativeModel({
+  const model = getGenAI().getGenerativeModel({
     model: MODEL,
     generationConfig: { maxOutputTokens: 4096, responseMimeType: "application/json" },
   });

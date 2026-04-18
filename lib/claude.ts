@@ -1,7 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 const MODEL = "gemini-2.5-flash";
+
+function getGenAI(): GoogleGenerativeAI {
+  const key = process.env["google-key"];
+  if (!key) throw new Error("google-key env var not set");
+  return new GoogleGenerativeAI(key);
+}
 
 export async function ask(prompt: string, maxTokens = 1024, jsonMode = false): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -10,7 +15,7 @@ export async function ask(prompt: string, maxTokens = 1024, jsonMode = false): P
     thinkingConfig: { thinkingBudget: 0 },
     ...(jsonMode ? { responseMimeType: "application/json" } : {}),
   };
-  const model = genAI.getGenerativeModel({ model: MODEL, generationConfig });
+  const model = getGenAI().getGenerativeModel({ model: MODEL, generationConfig });
 
   const maxRetries = 5;
   let lastErr: unknown;
@@ -624,7 +629,7 @@ export async function analyzeHSWrongAnswer(
   imageBase64: string,
   mimeType: string
 ): Promise<HSAnalysisResult> {
-  const model = genAI.getGenerativeModel({
+  const model = getGenAI().getGenerativeModel({
     model: MODEL,
     generationConfig: {
       maxOutputTokens: 4096,
