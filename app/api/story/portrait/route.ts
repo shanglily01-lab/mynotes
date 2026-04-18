@@ -117,33 +117,25 @@ export async function POST(req: NextRequest) {
 
   const openai = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
 
-  let imageUrl: string;
+  let b64Image: string;
   try {
     const response = await openai.images.generate({
       model: "dall-e-2",
       prompt,
       size: "512x512",
       n: 1,
+      response_format: "b64_json",
     });
-    const url = response.data?.[0]?.url;
-    if (!url) throw new Error("未返回图像 URL");
-    imageUrl = url;
+    const b64 = response.data?.[0]?.b64_json;
+    if (!b64) throw new Error("未返回图像数据");
+    b64Image = b64;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[portrait] dall-e-3 error:", msg);
+    console.error("[portrait] dall-e-2 error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  // Download and save locally
-  let buf: Buffer;
-  try {
-    const dl = await fetch(imageUrl);
-    buf = Buffer.from(await dl.arrayBuffer());
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[portrait] image download error:", msg);
-    return NextResponse.json({ error: "图片下载失败" }, { status: 500 });
-  }
+  const buf = Buffer.from(b64Image, "base64");
 
   const fileId = `${heroId}-${styleIndex}`;
   const filePath = await writeBinary("hero-portraits", fileId, "png", buf);
@@ -154,7 +146,6 @@ export async function POST(req: NextRequest) {
     update: { filePath, version: nextVersion },
   });
 
-  const imageBytes = buf.toString("base64");
-  const imageSrc = `data:image/png;base64,${imageBytes}`;
+  const imageSrc = `data:image/png;base64,${b64Image}`;
   return NextResponse.json({ imageSrc, label: style.label, version: nextVersion });
 }
