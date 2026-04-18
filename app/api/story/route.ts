@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ask } from "@/lib/claude";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Longer timeout for story generation
+export const maxDuration = 120;
+
+const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 
 const HERO_LORE: Record<string, string> = {
   arthas:    "阿尔萨斯·米奈希尔，洛丹伦王子，圣骑士，后堕落成巫妖王麾下的死亡骑士",
@@ -36,10 +41,10 @@ export async function POST(req: NextRequest) {
   const lore = HERO_LORE[heroId] ?? `${raceName}的英雄${heroName}`;
 
   const storyTypeMap: Record<string, string> = {
-    origin: "出身与成长背景，以及走上英雄之路的契机",
+    origin:   "出身与成长背景，以及走上英雄之路的契机",
     campaign: "在魔兽争霸三：混乱之治和冰封王座战役中的关键时刻与史诗冒险",
-    tragedy: "命运的悲剧与转折，内心挣扎与最终的抉择",
-    legacy: "对整个魔兽世界历史的深远影响与历史地位",
+    tragedy:  "命运的悲剧与转折，内心挣扎与最终的抉择",
+    legacy:   "对整个魔兽世界历史的深远影响与历史地位",
   };
 
   const focus = storyTypeMap[storyType] ?? storyTypeMap["origin"];
@@ -61,7 +66,13 @@ export async function POST(req: NextRequest) {
 - 必须写满2500字以上，不要提前结束`;
 
   try {
-    const story = await ask(prompt, 6000);
+    // Use Gemini directly with thinking disabled so all tokens go to story output
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const generationConfig: any = { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } };
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig });
+
+    const result = await model.generateContent(prompt);
+    const story = result.response.text();
     return NextResponse.json({ story });
   } catch (err) {
     console.error("[story] AI generation failed:", err);
