@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/db";
 import { writeBinary, readBinaryAsBase64 } from "@/lib/filestore";
 
@@ -57,15 +58,6 @@ const HERO_DESCRIPTIONS: Record<string, string> = {
   anubarak:  "Anub'arak nerubian crypt lord, massive insectoid spider-like body, dark chitinous armored carapace, multiple limbs, undead blue glow, ancient buried ruins environment",
 };
 
-interface ImagenPrediction {
-  bytesBase64Encoded?: string;
-  mimeType?: string;
-}
-
-interface ImagenResponse {
-  predictions?: ImagenPrediction[];
-  error?: { message?: string };
-}
 
 // GET: return all saved portraits for a hero
 export async function GET(req: NextRequest) {
@@ -116,32 +108,23 @@ export async function POST(req: NextRequest) {
 
   const prompt = `Fantasy portrait artwork of ${heroDesc}. ${style.suffix}${regenMod}. No text, no watermark, no UI elements, ultra high quality illustration.`;
 
-  const apiKey = process.env["google-key"] ?? "";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
+  const apiKey = process.env["google-key"];
+  if (!apiKey) return NextResponse.json({ error: "google-key not set" }, { status: 500 });
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      instances: [{ prompt }],
-      parameters: { sampleCount: 1, aspectRatio: "1:1" },
-    }),
+  const ai = new GoogleGenAI({ apiKey });
+  const result = await ai.models.generateImages({
+    model: "imagen-3.0-generate-001",
+    prompt,
+    config: { numberOfImages: 1, aspectRatio: "1:1" },
   });
 
-  const data = (await res.json()) as ImagenResponse;
-
-  if (!res.ok || data.error) {
-    console.error("[portrait] Imagen API error:", data.error);
-    return NextResponse.json({ error: data.error?.message ?? "图像生成失败" }, { status: 500 });
-  }
-
-  const prediction = data.predictions?.[0];
-  if (!prediction?.bytesBase64Encoded) {
+  const imageBytes = result.generatedImages?.[0]?.image?.imageBytes;
+  if (!imageBytes) {
+    console.error("[portrait] no image bytes returned", result);
     return NextResponse.json({ error: "未返回图像数据" }, { status: 500 });
   }
 
-  // Save image to file
-  const buf = Buffer.from(prediction.bytesBase64Encoded, "base64");
+  const buf = Buffer.from(imageBytes, "base64");
   const fileId = `${heroId}-${styleIndex}`;
   const filePath = await writeBinary("hero-portraits", fileId, "png", buf);
 
@@ -151,6 +134,6 @@ export async function POST(req: NextRequest) {
     update: { filePath, version: nextVersion },
   });
 
-  const imageSrc = `data:image/png;base64,${prediction.bytesBase64Encoded}`;
+  const imageSrc = `data:image/png;base64,${imageBytes}`;
   return NextResponse.json({ imageSrc, label: style.label, version: nextVersion });
 }
