@@ -4,13 +4,13 @@ const genAI = new GoogleGenerativeAI(process.env["google-key"] ?? "");
 const MODEL = "gemini-2.5-flash";
 
 export async function ask(prompt: string, maxTokens = 1024, jsonMode = false): Promise<string> {
-  const model = genAI.getGenerativeModel({
-    model: MODEL,
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      ...(jsonMode ? { responseMimeType: "application/json" } : {}),
-    },
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generationConfig: any = {
+    maxOutputTokens: maxTokens,
+    thinkingConfig: { thinkingBudget: 0 },
+    ...(jsonMode ? { responseMimeType: "application/json" } : {}),
+  };
+  const model = genAI.getGenerativeModel({ model: MODEL, generationConfig });
 
   const maxRetries = 5;
   let lastErr: unknown;
