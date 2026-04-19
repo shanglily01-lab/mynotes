@@ -153,7 +153,17 @@ function AnalysisCard({
       <div className="border-l-2 pl-4 py-1" style={{ borderColor: subjectColor }}>
         <p className="text-[11px] text-[#9a9590] uppercase tracking-wide mb-1">题目概述</p>
         <p className="text-[15px] text-[#1c1a16] font-medium">{analysis.questionSummary}</p>
-        <p className="text-[12px] text-[#5a5550] mt-1">章节：{analysis.chapter}</p>
+        <div className="flex items-center gap-3 mt-1">
+          <p className="text-[12px] text-[#5a5550]">章节：{analysis.chapter}</p>
+          {analysis.correctAnswer && (
+            <span
+              className="text-[12px] font-bold px-2 py-0.5 border"
+              style={{ color: subjectColor, borderColor: subjectColor }}
+            >
+              正确答案：{analysis.correctAnswer}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 薄弱知识点 */}
