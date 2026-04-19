@@ -72,16 +72,7 @@ function SchoolSection({ title, subtitle, subjects }: {
           <Link
             key={s.href}
             href={s.href}
-            className="flex items-center gap-1.5 px-3 py-2 border border-[#e4e0d8] bg-white text-[12px] text-[#5a5550] hover:border-current transition-colors"
-            style={{ ["--hover-color" as string]: s.color } as React.CSSProperties}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = s.color;
-              (e.currentTarget as HTMLElement).style.borderColor = s.color;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "";
-              (e.currentTarget as HTMLElement).style.borderColor = "";
-            }}
+            className="flex items-center gap-1.5 px-3 py-2 border border-[#e4e0d8] bg-white text-[12px] text-[#5a5550] active:bg-[#f5f2eb] transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
             <span className="truncate">{s.label}</span>

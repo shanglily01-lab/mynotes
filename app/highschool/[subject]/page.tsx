@@ -95,16 +95,8 @@ function KnowledgeSection({
             )}
             <button
               onClick={onGenerate}
-              className="px-5 py-2 text-[13px] font-medium border transition-colors"
+              className="px-5 py-2 text-[13px] font-medium border transition-colors active:opacity-70"
               style={{ borderColor: color, color, backgroundColor: "transparent" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = color;
-                (e.currentTarget as HTMLButtonElement).style.color = "white";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = color;
-              }}
             >
               {generateLabel}
             </button>

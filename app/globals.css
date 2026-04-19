@@ -57,3 +57,20 @@ h1, h2, h3 {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Eliminate 300ms tap delay on iOS/iPad */
+a, button, [role="button"], input, select, textarea, label {
+  touch-action: manipulation;
+}
+
+/* Prevent hover styles sticking on touch devices */
+@media (hover: none) {
+  a:hover, button:hover {
+    opacity: 1 !important;
+  }
+}
+
+/* Smooth scrolling for drawers and lists */
+.overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
