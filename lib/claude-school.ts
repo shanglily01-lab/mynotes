@@ -222,13 +222,20 @@ export async function analyzeSchoolWrongAnswer(
   const levelLabel = level === "primary" ? "小学" : "初中";
   const model = getGenAI().getGenerativeModel({
     model: MODEL,
-    generationConfig: { maxOutputTokens: 4096, responseMimeType: "application/json" },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    generationConfig: {
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+    } as any,
   });
 
   const prompt = `你是一位专业的${levelLabel}${subjectName}老师，请仔细分析图中的错题，诊断学生的薄弱知识点并给出针对性辅导。
 
 请严格按以下 JSON 格式返回，不要其他文字：
 {
+  "correctAnswer": "正确答案选项（如 A、B、C、D 或具体答案；若为非选择题则写出关键结论）",
+  "answerExplanation": "详细解析：逐步说明为什么这个答案是正确的，以及其他选项错在哪里（3-6句，逻辑清晰）",
   "questionSummary": "用一句话概括这道题考查的核心内容",
   "chapter": "所属章节",
   "knowledgePoints": [

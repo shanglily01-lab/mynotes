@@ -89,7 +89,20 @@ function AnalysisCard({ analysis, subjectColor }: { analysis: HSAnalysisResult; 
       <div className="border-l-2 pl-4 py-1" style={{ borderColor: subjectColor }}>
         <p className="text-[11px] text-[#9a9590] uppercase tracking-wide mb-1">题目概述</p>
         <p className="text-[15px] text-[#1c1a16] font-medium">{analysis.questionSummary}</p>
-        <p className="text-[12px] text-[#5a5550] mt-1">章节：{analysis.chapter}</p>
+        <div className="flex items-center gap-3 mt-1">
+          <p className="text-[12px] text-[#5a5550]">章节：{analysis.chapter}</p>
+          {analysis.correctAnswer && (
+            <span className="text-[12px] font-bold px-2 py-0.5 border" style={{ color: subjectColor, borderColor: subjectColor }}>
+              正确答案：{analysis.correctAnswer}
+            </span>
+          )}
+        </div>
+        {analysis.answerExplanation && (
+          <div className="mt-3 p-3 bg-[#f5f2eb] border border-[#e4e0d8]">
+            <p className="text-[10px] text-[#9a9590] uppercase tracking-wide mb-1">答案解析</p>
+            <p className="text-[13px] text-[#1c1a16] leading-relaxed">{analysis.answerExplanation}</p>
+          </div>
+        )}
       </div>
       <div>
         <p className="text-[11px] text-[#9a9590] uppercase tracking-wide mb-2">薄弱知识点</p>
