@@ -611,6 +611,7 @@ ${advancedConclusion}
 
 export interface HSAnalysisResult {
   correctAnswer: string;
+  answerExplanation: string;
   questionSummary: string;
   chapter: string;
   knowledgePoints: {
@@ -645,6 +646,7 @@ export async function analyzeHSWrongAnswer(
 请严格按以下 JSON 格式返回，不要其他文字：
 {
   "correctAnswer": "正确答案选项（如 A、B、C、D 或具体答案；若为非选择题则写出关键结论）",
+  "answerExplanation": "详细解析：逐步说明为什么这个答案是正确的，以及其他选项错在哪里（3-6句，逻辑清晰）",
   "questionSummary": "用一句话概括这道题考查的核心内容",
   "chapter": "所属章节（如：二次函数、氧化还原反应、电磁感应等）",
   "knowledgePoints": [

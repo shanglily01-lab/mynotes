@@ -167,6 +167,12 @@ function AnalysisCard({
             </span>
           )}
         </div>
+        {analysis.answerExplanation && (
+          <div className="mt-3 p-3 bg-[#f5f2eb] border border-[#e4e0d8]">
+            <p className="text-[10px] text-[#9a9590] uppercase tracking-wide mb-1">答案解析</p>
+            <p className="text-[13px] text-[#1c1a16] leading-relaxed">{analysis.answerExplanation}</p>
+          </div>
+        )}
       </div>
 
       {/* 薄弱知识点 */}
