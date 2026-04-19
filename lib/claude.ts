@@ -631,10 +631,12 @@ export async function analyzeHSWrongAnswer(
 ): Promise<HSAnalysisResult> {
   const model = getGenAI().getGenerativeModel({
     model: MODEL,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generationConfig: {
       maxOutputTokens: 4096,
       responseMimeType: "application/json",
-    },
+      thinkingConfig: { thinkingBudget: 0 },
+    } as any,
   });
 
   const prompt = `你是一位专业的高中${subjectName}老师，请仔细分析图中的错题，诊断学生的薄弱知识点并给出针对性辅导。
