@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "自我成长" },
   other: { "mobile-web-app-capable": "yes" },
+  icons: {
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {
