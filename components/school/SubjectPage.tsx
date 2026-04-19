@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ImageViewer from "@/components/ui/ImageViewer";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { HSAnalysisResult } from "@/lib/claude";
@@ -346,8 +347,7 @@ export default function SchoolSubjectPage({
               )}
               {imagePreview && (
                 <div className="p-3 flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagePreview} alt="wrong answer" className="max-h-64 object-contain" />
+                  <ImageViewer src={imagePreview} alt="wrong answer" className="max-h-64 object-contain" />
                 </div>
               )}
             </div>

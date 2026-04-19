@@ -9,6 +9,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { getHSSubject } from "@/lib/hs-subjects";
 import type { HSAnalysisResult } from "@/lib/claude";
+import ImageViewer from "@/components/ui/ImageViewer";
 
 type Tab = "knowledge" | "analyze" | "history";
 
@@ -532,12 +533,7 @@ export default function HSSubjectPage({
 
               {imagePreview && (
                 <div className="p-3 flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imagePreview}
-                    alt="wrong answer"
-                    className="max-h-64 object-contain"
-                  />
+                  <ImageViewer src={imagePreview} alt="wrong answer" className="max-h-64 object-contain" />
                 </div>
               )}
             </div>
