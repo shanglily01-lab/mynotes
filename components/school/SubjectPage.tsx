@@ -29,10 +29,10 @@ interface SubjectConfig {
 // ---- Sub-components ----
 
 function KnowledgeSection({
-  title, subtitle, content, loading, error, color, subjectName, generateLabel, onGenerate, accent = false,
+  title, subtitle, content, loading, error, color, subjectName, generateLabel, onGenerate, accent = false, enableMath = false,
 }: {
   title: string; subtitle: string; content: string | null; loading: boolean; error: string | null;
-  color: string; subjectName: string; generateLabel: string; onGenerate: () => void; accent?: boolean;
+  color: string; subjectName: string; generateLabel: string; onGenerate: () => void; accent?: boolean; enableMath?: boolean;
 }) {
   return (
     <div className="border border-[#d8d4ca]" style={{ backgroundColor: accent ? "#faf8f5" : "white" }}>
@@ -64,7 +64,10 @@ function KnowledgeSection({
         )}
         {!loading && content && (
           <div className="hs-markdown">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={enableMath ? [remarkGfm, remarkMath] : [remarkGfm]}
+              rehypePlugins={enableMath ? [rehypeKatex] : []}
+            >{content}</ReactMarkdown>
           </div>
         )}
       </div>
@@ -154,6 +157,7 @@ export default function SchoolSubjectPage({
 }) {
   const router = useRouter();
   const { name, color } = config;
+  const enableMath = !["chinese", "english", "ethics"].includes(subject);
 
   const [tab, setTab] = useState<Tab>("knowledge");
   const [basicContent, setBasicContent] = useState<string | null>(null);
@@ -305,13 +309,13 @@ export default function SchoolSubjectPage({
                 title="基础知识体系" subtitle="全章节考点 · 规则方法 · 考试重点 · 易错辨析"
                 content={basicContent} loading={basicLoading} error={basicError}
                 color={color} subjectName={name} generateLabel="生成基础知识体系"
-                onGenerate={() => void generatePhase("basic")}
+                onGenerate={() => void generatePhase("basic")} enableMath={enableMath}
               />
               <KnowledgeSection
                 title="进阶深度拓展" subtitle="深层理解 · 解题技巧 · 考试命题规律 · 高分策略"
                 content={advContent} loading={advLoading} error={advError}
                 color={color} subjectName={name} generateLabel="生成进阶深度拓展"
-                onGenerate={() => void generatePhase("advanced")} accent
+                onGenerate={() => void generatePhase("advanced")} accent enableMath={enableMath}
               />
             </>
           )}

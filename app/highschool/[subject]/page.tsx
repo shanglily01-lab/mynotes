@@ -34,6 +34,7 @@ function KnowledgeSection({
   generateLabel,
   onGenerate,
   accent = false,
+  enableMath = false,
 }: {
   title: string;
   subtitle: string;
@@ -45,6 +46,7 @@ function KnowledgeSection({
   generateLabel: string;
   onGenerate: () => void;
   accent?: boolean;
+  enableMath?: boolean;
 }) {
   const sectionBg = accent ? "#faf8f5" : "white";
   return (
@@ -112,8 +114,8 @@ function KnowledgeSection({
         {!loading && content && (
           <div className="hs-markdown">
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
+              remarkPlugins={enableMath ? [remarkGfm, remarkMath] : [remarkGfm]}
+              rehypePlugins={enableMath ? [rehypeKatex] : []}
             >
               {content}
             </ReactMarkdown>
@@ -245,6 +247,7 @@ export default function HSSubjectPage({
   const { subject } = use(params);
   const router = useRouter();
   const config = getHSSubject(subject);
+  const enableMath = !["chinese", "english"].includes(subject);
 
   const [tab, setTab] = useState<Tab>("knowledge");
 
@@ -471,6 +474,7 @@ export default function HSSubjectPage({
                 subjectName={name}
                 generateLabel={`生成基础知识体系`}
                 onGenerate={() => void generatePhase("basic")}
+                enableMath={enableMath}
               />
 
               {/* -- 高级深度拓展 -- */}
@@ -485,6 +489,7 @@ export default function HSSubjectPage({
                 generateLabel={`生成高级深度拓展`}
                 onGenerate={() => void generatePhase("advanced")}
                 accent
+                enableMath={enableMath}
               />
             </>
           )}
