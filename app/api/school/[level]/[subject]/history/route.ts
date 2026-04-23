@@ -27,6 +27,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       questionSummary: analysis?.questionSummary ?? "",
       weakPoints: analysis?.knowledgePoints?.map((kp) => kp.name) ?? [],
       analysis,
+      imageUrl: `/api/school/analyze/${r.id}/image`,
     };
   });
 

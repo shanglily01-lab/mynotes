@@ -19,6 +19,7 @@ interface HistoryItem {
   questionSummary: string;
   weakPoints: string[];
   analysis: HSAnalysisResult | null;
+  imageUrl?: string;
 }
 
 interface SubjectConfig {
@@ -422,7 +423,13 @@ export default function SchoolSubjectPage({
                     </div>
                   </div>
                   {expandedId === item.id && item.analysis && (
-                    <div className="px-4 pb-5 border-t border-[#e4e0d8] pt-4">
+                    <div className="px-4 pb-5 border-t border-[#e4e0d8] pt-4 space-y-4">
+                      {item.imageUrl && (
+                        <div>
+                          <p className="text-[10px] text-[#9a9590] uppercase tracking-wide mb-2">原题图片</p>
+                          <ImageViewer src={item.imageUrl} alt="原题" className="max-h-64 object-contain mx-auto border border-[#e4e0d8]" />
+                        </div>
+                      )}
                       <AnalysisCard analysis={item.analysis} subjectColor={color} />
                     </div>
                   )}
