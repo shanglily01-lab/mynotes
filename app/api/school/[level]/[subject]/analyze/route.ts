@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       data: {
         level,
         subject,
-        imagePath:    filePath,
+        imagePath:    fileName,
         mimeType,
         analysisJson: JSON.stringify(analysis),
       },

@@ -49,10 +49,11 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const base64 = buffer.toString("base64");
     const analysis = await analyzeHSWrongAnswer(config.name, base64, file.type);
 
+    const imageFileName = path.basename(imagePath);
     await prisma.hSWrongAnswer.update({
       where: { id: record.id },
       data: {
-        imagePath,
+        imagePath: imageFileName,
         analysisJson: JSON.stringify(analysis),
       },
     });
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     // Save imagePath even if analysis fails, so record is not orphaned
     await prisma.hSWrongAnswer.update({
       where: { id: record.id },
-      data: { imagePath },
+      data: { imagePath: path.basename(imagePath) },
     });
     return NextResponse.json({ error: "AI analysis failed" }, { status: 500 });
   }

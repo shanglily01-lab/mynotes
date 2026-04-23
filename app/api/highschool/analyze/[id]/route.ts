@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import fs from "fs/promises";
+import path from "path";
+import { HS_WRONG_ANSWERS_DIR } from "@/lib/filestore";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -28,7 +30,12 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (!record) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   if (record.imagePath) {
-    await fs.unlink(record.imagePath).catch(() => undefined);
+    const basename = path.basename(record.imagePath.replace(/\\/g, "/"));
+    const candidates = [record.imagePath, path.join(HS_WRONG_ANSWERS_DIR, basename)];
+    for (const p of candidates) {
+      const ok = await fs.unlink(p).then(() => true).catch(() => false);
+      if (ok) break;
+    }
   }
 
   await prisma.hSWrongAnswer.delete({ where: { id } });
