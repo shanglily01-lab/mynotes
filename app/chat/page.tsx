@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { dialog } from "@/components/ui/Dialog";
 
 interface Message {
   role: "user" | "model";
@@ -106,7 +107,7 @@ export default function ChatPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      alert("您的浏览器不支持语音输入，请使用 Chrome 或 Edge 浏览器");
+      void dialog.alert("您的浏览器不支持语音输入，请使用 Chrome 或 Edge 浏览器");
       return;
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call

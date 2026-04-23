@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { dialog } from "@/components/ui/Dialog";
 
 interface MedicalRecord {
   id: string;
@@ -303,7 +304,8 @@ function RecordCard({
   }
 
   async function handleDelete() {
-    if (!confirm(`确认删除「${record.title}」？`)) return;
+    const ok = await dialog.confirm(`确认删除「${record.title}」？`, { danger: true, confirmText: "删除" });
+    if (!ok) return;
     await fetch(`/api/medical/${record.id}`, { method: "DELETE" });
     onDelete(record.id);
   }
