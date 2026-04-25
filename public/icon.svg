@@ -1,4 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="80" fill="#1e3a5f"/>
-  <text x="256" y="320" font-family="system-ui,sans-serif" font-size="260" font-weight="bold" fill="white" text-anchor="middle">长</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a3a9a"/>
+      <stop offset="100%" stop-color="#001e5c"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#faf6ec"/>
+      <stop offset="100%" stop-color="#ede4cf"/>
+    </linearGradient>
+    <linearGradient id="pageRight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f0e0"/>
+      <stop offset="100%" stop-color="#e6dcc4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffd97a" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#ffd97a" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffd97a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Solid background fills entire canvas (maskable safe) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Subtle academic frame: thin double border in safe zone -->
+  <rect x="64" y="64" width="384" height="384" fill="none" stroke="#ffd97a" stroke-width="1.5" opacity="0.35"/>
+  <rect x="74" y="74" width="364" height="364" fill="none" stroke="#ffd97a" stroke-width="0.8" opacity="0.25"/>
+
+  <!-- Knowledge glow behind book -->
+  <circle cx="256" cy="220" r="170" fill="url(#glow)"/>
+
+  <!-- Open book centered -->
+  <g transform="translate(256 280)">
+    <ellipse cx="0" cy="78" rx="160" ry="14" fill="#000" opacity="0.28"/>
+
+    <!-- Left page -->
+    <path d="M -148 -78 Q -148 -86, -140 -88 L -8 -64 L -8 70 L -140 56 Q -148 54, -148 46 Z"
+          fill="url(#page)" stroke="#c9bfa3" stroke-width="1"/>
+
+    <!-- Right page -->
+    <path d="M 148 -78 Q 148 -86, 140 -88 L 8 -64 L 8 70 L 140 56 Q 148 54, 148 46 Z"
+          fill="url(#pageRight)" stroke="#c9bfa3" stroke-width="1"/>
+
+    <!-- Spine center -->
+    <path d="M -8 -64 L 0 -68 L 8 -64 L 8 70 L 0 72 L -8 70 Z" fill="#c2b698"/>
+
+    <!-- Text lines on left page -->
+    <g fill="#5a4d2c" opacity="0.55">
+      <rect x="-130" y="-50" width="100" height="3" rx="1.5"/>
+      <rect x="-130" y="-34" width="110" height="3" rx="1.5"/>
+      <rect x="-130" y="-18" width="86"  height="3" rx="1.5"/>
+      <rect x="-130" y="-2"  width="106" height="3" rx="1.5"/>
+      <rect x="-130" y="14"  width="92"  height="3" rx="1.5"/>
+      <rect x="-130" y="30"  width="100" height="3" rx="1.5"/>
+    </g>
+
+    <!-- Text lines on right page -->
+    <g fill="#5a4d2c" opacity="0.55">
+      <rect x="22" y="-50" width="100" height="3" rx="1.5"/>
+      <rect x="22" y="-34" width="108" height="3" rx="1.5"/>
+      <rect x="22" y="-18" width="80"  height="3" rx="1.5"/>
+      <rect x="22" y="-2"  width="104" height="3" rx="1.5"/>
+      <rect x="22" y="14"  width="92"  height="3" rx="1.5"/>
+      <rect x="22" y="30"  width="106" height="3" rx="1.5"/>
+    </g>
+
+    <!-- Bookmark ribbon -->
+    <path d="M -3 -64 L 3 -64 L 3 38 L 0 30 L -3 38 Z" fill="#a82433"/>
+  </g>
+
+  <!-- Star of knowledge above book -->
+  <g transform="translate(256 130)">
+    <circle r="24" fill="#ffd97a" opacity="0.18"/>
+    <path d="M 0 -20 L 5.9 -6.2 L 20 -3.1 L 9.5 6.5 L 12.8 20.6 L 0 13.4 L -12.8 20.6 L -9.5 6.5 L -20 -3.1 L -5.9 -6.2 Z"
+          fill="#ffd97a" stroke="#e8b94a" stroke-width="1"/>
+  </g>
+
+  <!-- Bottom serif title: 成长 -->
+  <text x="256" y="455"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="46" font-weight="700"
+        text-anchor="middle"
+        fill="#ffd97a" letter-spacing="6">
+    成长
+  </text>
 </svg>
