@@ -14,6 +14,7 @@ const DIRS = {
   "school-materials": path.join(DATA_DIR, "school-materials"),
   "hero-stories":     path.join(DATA_DIR, "hero-stories"),
   "hero-portraits":   path.join(DATA_DIR, "hero-portraits"),
+  "gaokao":           path.join(DATA_DIR, "gaokao"),
 } as const;
 
 export const HS_WRONG_ANSWERS_DIR     = path.join(DATA_DIR, "hs-wrong-answers");

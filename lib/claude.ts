@@ -773,3 +773,171 @@ ${foundationList}
   // 清理可能的 markdown 代码块包裹
   return text.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
 }
+
+// ============ 高考专题：仿真历年高考题 + 预测今年高考卷 ============
+
+const HS_GAOKAO_LATEX = new Set(["math", "physics", "chemistry", "biology"]);
+
+const GAOKAO_STRUCTURE: Record<string, string> = {
+  chinese:  "高考语文 150 分：现代文阅读 I（信息类·19 分）、现代文阅读 II（文学类·16 分）、文言文阅读（20 分）、古代诗歌阅读（9 分）、名篇名句默写（6 分）、语言文字运用（20 分）、写作（60 分）",
+  math:     "高考数学 150 分：单选题（8 题×5 分）、多选题（3 题×6 分）、填空题（3 题×5 分）、解答题（5 题共 77 分，导数/数列/解析几何/概率统计/立体几何为高频压轴）",
+  english:  "高考英语 150 分：阅读理解（4 篇×40 分）、七选五（15 分）、完形填空（15 分）、语法填空（15 分）、应用文写作（15 分）、读后续写（25 分）",
+  physics:  "新高考物理 100 分：单选题（7 题×4 分）、多选题（3 题×6 分）、实验题（约 15 分）、计算题（约 39 分，力学综合 + 电磁感应/带电粒子运动为压轴）",
+  chemistry:"新高考化学 100 分：单选题（10 题×3 分）、非选择题包括化学工艺流程（约 14 分）、化学反应原理（约 15 分）、物质结构与性质（约 15 分）、有机化学综合（约 15 分）",
+  biology:  "新高考生物 100 分：单选题（10 题×2 分）、多选题（5 题×4 分）、非选择题约 60 分（遗传计算、生命调节、生态系统、实验探究为高频）",
+};
+
+const GAOKAO_QUESTION_PROFILE: Record<string, string> = {
+  chinese:  "1 道现代文阅读 II 文学类小题、1 道文言文翻译题、1 道古诗鉴赏题、1 道语言文字运用题、1 道作文（仅给题目和审题立意提示）",
+  math:     "3 道单选（含 1 道压轴）、1 道多选、1 道填空、2 道解答题（含 1 道导数或解析几何压轴）",
+  english:  "1 篇阅读理解（含 4 题）、1 道七选五（5 题）、1 道完形填空摘段（5 题）、1 道语法填空（含 5 空）、1 道应用文写作题",
+  physics:  "2 道单选、1 道多选、1 道实验题、2 道计算题（含 1 道压轴综合题）",
+  chemistry:"3 道单选、1 道工艺流程题、1 道反应原理题、1 道有机推断题",
+  biology:  "3 道单选、1 道多选、2 道非选择题（含 1 道遗传计算或生命调节综合）",
+};
+
+function gaokaoLatexReq(subject: string): string {
+  const stem = HS_GAOKAO_LATEX.has(subject);
+  return stem
+    ? `- **数学/物理/化学公式必须用 LaTeX**：行内 $...$，独立 $$...$$，分数 \\frac{}{}, 根号 \\sqrt{}, 上下标 ^{}_{}，向量 \\vec{}`
+    : `- 禁止 LaTeX 语法（$、$$、\\frac 等），只用纯文字`;
+}
+
+const clean2 = (s: string) =>
+  s.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+// 生成"仿真历年高考题"一套（参照最近 3 年命题风格）
+export async function generateGaokaoReal(
+  subject: string,
+  subjectName: string
+): Promise<string> {
+  const structure = GAOKAO_STRUCTURE[subject] ?? `${subjectName}高考结构`;
+  const profile   = GAOKAO_QUESTION_PROFILE[subject] ?? "5-7 道代表性题目";
+  const latexReq  = gaokaoLatexReq(subject);
+
+  const text = await ask(
+    `你是一位资深高考命题研究专家，精通近 3 年（2023、2024、2025）全国卷与新高考卷的命题规律。
+请仿照 2023-2025 年高考${subjectName}的真实命题风格、难度、题型分布，生成一份《${subjectName}高考真题仿真练习卷（节选）》Markdown。
+
+【试卷结构参考】${structure}
+【本套卷题目构成】${profile}
+
+【严格要求】
+- 仿真：每道题的命题角度、设问方式、难度阶梯、综合考点必须高度贴近真实高考
+- 风格：题干语言简洁规范，与真题保持一致；不要出现"假设""比方说"这种口语化表达
+${latexReq}
+- 必须遵守"题目-答案分隔"格式（前端要解析），不要使用其他变体写法
+
+【严格输出格式（每道题严格遵守，前端要解析）】
+
+> **本套卷参照 2023-2025 年高考${subjectName}命题风格仿真生成，可用于高三冲刺训练。**
+
+## 第 1 题（题型，X 分）
+
+题干内容（含图表用文字描述代替）
+
+A. ……
+B. ……
+C. ……
+D. ……
+
+【答案与解析】
+
+**答案：** B
+
+**解析：** 详细分步解析（3-6 句），点明关键知识点和易错处。
+
+---
+
+## 第 2 题（题型，X 分）
+
+……
+
+【答案与解析】
+
+**答案：** ……
+
+**解析：** ……
+
+---
+
+（按上述格式继续，覆盖${profile}的全部题量）
+
+注意：
+- 每道题必须以 \`## 第 N 题（题型，X 分）\` 开头
+- 每道题答案部分必须以独立一行 \`【答案与解析】\` 起始
+- 题与题之间用 \`---\` 分隔
+- 不要在文档开头加代码块包裹`,
+    14000
+  );
+
+  return clean2(text);
+}
+
+// 生成"今年高考预测试卷"（含命题趋势分析）
+export async function generateGaokaoPredict(
+  subject: string,
+  subjectName: string,
+  year: number
+): Promise<string> {
+  const structure = GAOKAO_STRUCTURE[subject] ?? `${subjectName}高考结构`;
+  const profile   = GAOKAO_QUESTION_PROFILE[subject] ?? "5-7 道代表性题目";
+  const latexReq  = gaokaoLatexReq(subject);
+
+  const text = await ask(
+    `你是一位深耕高考命题研究 20 年的${subjectName}权威专家，请预测 ${year} 年高考${subjectName}的命题方向，并生成一份《${year} 年${subjectName}高考预测卷（节选）》Markdown。
+
+【试卷结构参考】${structure}
+【本套卷题目构成】${profile}
+【近 3 年趋势】
+- 2023 年：基础题与情景化结合，考查综合应用
+- 2024 年：新高考卷加强跨章节综合，多选题难度上升
+- 2025 年：实验/数据/真实情景题占比继续扩大，强调思维深度
+
+【严格要求】
+- 第一部分：先用 200-400 字分析 ${year} 年${subjectName}最可能的命题方向、新增热点、易考章节、需重点防范的题型
+- 第二部分：按真实高考标准生成预测题，每道题须配合"为什么这样命题"的简短点评（嵌在解析里）
+- 难度匹配高考实际，不要过简或过难
+${latexReq}
+
+【严格输出格式（前端要解析）】
+
+# ${year} 年${subjectName}高考预测卷
+
+## 命题趋势分析
+
+（200-400 字趋势分析，包含：今年最可能新增的考查角度、最有可能保留的命题特征、需要重点防范的难点、复习冲刺建议）
+
+---
+
+## 第 1 题（题型，X 分）
+
+题干……
+
+A. ……
+B. ……
+C. ……
+D. ……
+
+【答案与解析】
+
+**答案：** ……
+
+**解析：** 详细解析（包含为什么这样命题的判断依据）
+
+---
+
+## 第 2 题
+……
+
+注意：
+- 命题趋势分析在所有题目之前，作为整套卷的开篇
+- 每道题严格按照 \`## 第 N 题（题型，X 分）\` + \`【答案与解析】\` 格式
+- 题与题之间用 \`---\` 分隔
+- 不要用代码块包裹`,
+    16000
+  );
+
+  return clean2(text);
+}
+
