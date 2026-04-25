@@ -260,6 +260,7 @@ export default function HSSubjectPage({
   const [advLoading, setAdvLoading]       = useState(false);
   const [advError, setAdvError]           = useState<string | null>(null);
   const [loaded, setLoaded]               = useState(false);
+  const [loadError, setLoadError]         = useState<string | null>(null);
 
   // Tab 2: Analyze
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -279,14 +280,24 @@ export default function HSSubjectPage({
   // 页面挂载时自动拉取已有内容
   useEffect(() => {
     if (!config) return;
-    fetch(`/api/highschool/${subject}/material`)
-      .then((r) => r.json() as Promise<{ basic: string | null; advanced: string | null }>)
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const url = `/api/highschool/${subject}/material`;
+    fetch(url, { signal: ctrl.signal, cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+        return r.json() as Promise<{ basic: string | null; advanced: string | null }>;
+      })
       .then((data) => {
         setBasicContent(data.basic);
         setAdvContent(data.advanced);
       })
-      .catch(() => undefined)
-      .finally(() => setLoaded(true));
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+        setLoadError(`加载失败 (${url}): ${msg}`);
+      })
+      .finally(() => { clearTimeout(timer); setLoaded(true); });
+    return () => { clearTimeout(timer); ctrl.abort(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subject]);
 
@@ -457,8 +468,16 @@ export default function HSSubjectPage({
           `}</style>
 
           {/* 初次加载中 */}
-          {!loaded && (
-            <div className="py-10 text-center text-[#9a9590] text-[13px]">加载中...</div>
+          {!loaded && !loadError && (
+            <div className="py-10 text-center text-[#9a9590] text-[13px]">加载中...（15秒超时）</div>
+          )}
+          {loadError && (
+            <div className="px-4 py-3 border border-[#8b1a2a] bg-[#fdf6f7] text-[#8b1a2a] text-[12px] break-all">
+              <p className="font-bold mb-1">⚠ 网络/API 错误</p>
+              <p className="font-mono text-[11px]">{loadError}</p>
+              <p className="mt-2 text-[#5a5550]">UA: {typeof navigator !== "undefined" ? navigator.userAgent : "?"}</p>
+              <p className="mt-1 text-[#5a5550]">Origin: {typeof location !== "undefined" ? location.origin : "?"}</p>
+            </div>
           )}
 
           {loaded && (
