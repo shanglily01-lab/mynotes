@@ -19,6 +19,7 @@ const MY_ITEMS = [
   { href: "/story",          label: "英雄传说" },
   { href: "/english",        label: "每日英语" },
   { href: "/subjects/news",  label: "每日新闻" },
+  { href: "/games",          label: "益智游戏" },
 ];
 
 export default function MobileNav() {

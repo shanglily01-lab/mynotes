@@ -240,3 +240,20 @@ model HeroPortrait {
   @@unique([heroId, styleIndex])
   @@index([heroId])
 }
+
+model GameSession {
+  id          String    @id @default(cuid())
+  gameType    String    @db.VarChar(30)
+  difficulty  String?   @db.VarChar(20)
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  score       Int       @default(0)
+  totalRounds Int       @default(0)
+  correct     Int       @default(0)
+  durationMs  Int?
+  metadata    String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@index([gameType, createdAt(sort: Desc)])
+  @@index([createdAt])
+}

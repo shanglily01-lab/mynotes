@@ -60,6 +60,7 @@ const TOOLS = [
   { href: "/chat",             label: "AI 助手" },
   { href: "/health",           label: "疾病管理" },
   { href: "/story",            label: "英雄传说" },
+  { href: "/games",            label: "益智游戏" },
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {

@@ -774,6 +774,108 @@ ${foundationList}
   return text.replace(/^```(?:markdown)?\n?/i, "").replace(/\n?```$/i, "").trim();
 }
 
+// ============ 益智游戏：成语接龙 + 古诗填空 ============
+
+export interface IdiomCheck {
+  valid: boolean;
+  meaning: string | null;
+  reason: string | null;
+}
+
+// 校验用户输入的成语：①是不是真成语 ②首字是否匹配上一题的末字
+export async function verifyIdiom(
+  candidate: string,
+  mustStartWith: string,
+): Promise<IdiomCheck> {
+  const cand = candidate.trim();
+  if (!cand) return { valid: false, meaning: null, reason: "请输入成语" };
+  if (cand.length < 3 || cand.length > 6) {
+    return { valid: false, meaning: null, reason: "成语应为 4 字（少数 3 或 5 字也可）" };
+  }
+  if (mustStartWith && cand[0] !== mustStartWith) {
+    return {
+      valid: false,
+      meaning: null,
+      reason: `首字必须是 \"${mustStartWith}\"，你输入的是 \"${cand[0]}\"`,
+    };
+  }
+
+  const text = await ask(
+    `你是一位中文老师，请判断以下输入是否为真实存在的汉语成语。
+
+输入：${cand}
+
+只返回 JSON，不要其他文字：
+{
+  "valid": true/false,
+  "meaning": "若是成语，给出 30 字以内的简明释义；否则填 null",
+  "reason": "若不是成语，简短说明原因；否则填 null"
+}`,
+    256,
+    true,
+  );
+
+  try {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return { valid: false, meaning: null, reason: "AI 返回格式错误" };
+    return JSON.parse(m[0]) as IdiomCheck;
+  } catch (err) {
+    console.error("verifyIdiom parse error:", err);
+    return { valid: false, meaning: null, reason: "AI 返回解析失败" };
+  }
+}
+
+// 给一个成语的下一个候选：用于"提示"功能
+export async function suggestNextIdiom(mustStartWith: string): Promise<string | null> {
+  const text = await ask(
+    `请给出一个常用汉语成语，首字必须是 "${mustStartWith}"。
+只回答这一个成语本身，不要任何解释或标点。`,
+    32,
+  );
+  const cand = text.trim().replace(/[，。！？\s"'`]/g, "");
+  if (cand.length >= 3 && cand.length <= 6 && cand[0] === mustStartWith) return cand;
+  return null;
+}
+
+export interface PoemPuzzle {
+  title: string;
+  author: string;
+  dynasty: string;
+  lines: string[];
+  blanks: { lineIdx: number; charIdx: number; answer: string }[];
+}
+
+// 生成一道古诗填空题（适合 4-6 年级）
+export async function generatePoemPuzzle(): Promise<PoemPuzzle> {
+  const text = await ask(
+    `你是一位小学语文老师，请挑选一首适合小学 4-6 年级背诵的唐诗或宋词（避开生僻字、避开太长的词），生成一道填空题。
+
+要求：
+- 全诗不超过 8 句（绝句 4 句最佳，律诗 8 句也可）
+- 选 1-2 个关键字挖空（动词、名词、形容词为佳，不要挖虚词）
+- 挖空位置和答案必须严格对应
+
+只返回 JSON，不要其他文字：
+{
+  "title": "诗题",
+  "author": "作者",
+  "dynasty": "唐 / 宋 / 元 / 明 / 清",
+  "lines": ["第一句完整原文", "第二句完整原文", "..."],
+  "blanks": [
+    { "lineIdx": 0, "charIdx": 2, "answer": "字" }
+  ]
+}
+
+注意：lineIdx 从 0 开始；charIdx 是字符位置（不含标点），从 0 开始；answer 必须等于 lines[lineIdx] 中第 charIdx 位的字。`,
+    512,
+    true,
+  );
+
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("古诗题生成失败");
+  return JSON.parse(m[0]) as PoemPuzzle;
+}
+
 // ============ 高考专题：仿真历年高考题 + 预测今年高考卷 ============
 
 const HS_GAOKAO_LATEX = new Set(["math", "physics", "chemistry", "biology"]);

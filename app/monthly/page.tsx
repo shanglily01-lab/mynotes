@@ -8,6 +8,13 @@ interface ExamSubject {
   pct: number;
 }
 
+interface GameTypeStat {
+  gameType: string;
+  sessions: number;
+  avgScore: number;
+  bestScore: number;
+}
+
 interface MonthData {
   month: string;
   label: string;
@@ -15,7 +22,16 @@ interface MonthData {
   plans: { done: number; total: number };
   exams: { avgPct: number | null; subjects: ExamSubject[] };
   articles: number;
+  games: { totalSessions: number; byType: GameTypeStat[] };
 }
+
+const GAME_LABELS_ZH: Record<string, string> = {
+  game24: "算 24 点",
+  sudoku: "数独",
+  idiom:  "成语接龙",
+  poem:   "古诗填空",
+  words:  "单词卡片",
+};
 
 const SUBJECT_NAMES: Record<string, string> = {
   psychology: "心理学",
@@ -87,6 +103,7 @@ function MonthCard({ data, defaultOpen }: { data: MonthData; defaultOpen?: boole
               data.english.days > 0 && `英语 ${data.english.days} 天`,
               data.plans.total > 0 && `完成 ${data.plans.done}/${data.plans.total} 项`,
               data.exams.avgPct !== null && `均分 ${data.exams.avgPct}%`,
+              data.games.totalSessions > 0 && `游戏 ${data.games.totalSessions} 局`,
             ].filter(Boolean).join(" · ")}
           </span>
         </div>
@@ -96,7 +113,7 @@ function MonthCard({ data, defaultOpen }: { data: MonthData; defaultOpen?: boole
       {open && (
         <div className="border-t border-[#e4e0d8] px-5 py-5 space-y-5">
           {/* Stats row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
             <StatBox
               label="英语学习"
               value={data.english.days}
@@ -121,6 +138,12 @@ function MonthCard({ data, defaultOpen }: { data: MonthData; defaultOpen?: boole
               sub={data.articles > 0 ? "篇" : "暂无"}
               href="/subjects/news"
             />
+            <StatBox
+              label="益智游戏"
+              value={data.games.totalSessions}
+              sub={data.games.totalSessions > 0 ? "局" : "暂无"}
+              href="/games"
+            />
           </div>
 
           {/* English topics */}
@@ -135,6 +158,35 @@ function MonthCard({ data, defaultOpen }: { data: MonthData; defaultOpen?: boole
                     className="text-[11px] px-2 py-0.5 border border-[#d8d4ca] text-[#5a5550] capitalize hover:border-[#003087] hover:text-[#003087] transition-colors"
                   >
                     {t}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Game stats per type */}
+          {data.games.byType.length > 0 && (
+            <div>
+              <p className="text-[10px] tracking-[0.15em] uppercase text-[#9a9590] mb-2">益智游戏</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {data.games.byType.map((g) => (
+                  <Link
+                    key={g.gameType}
+                    href="/games"
+                    className="flex items-center gap-3 px-3 py-2 border border-[#d8d4ca] hover:border-[#003087] transition-colors"
+                  >
+                    <span className="text-[13px] text-[#1c1a16] flex-1">
+                      {GAME_LABELS_ZH[g.gameType] ?? g.gameType}
+                    </span>
+                    <span className="text-[11px] text-[#9a9590] tabular-nums">
+                      {g.sessions} 局
+                    </span>
+                    <span
+                      className="text-[13px] font-semibold text-[#003087] tabular-nums w-12 text-right"
+                      style={{ fontFamily: "var(--font-playfair, Georgia, serif)" }}
+                    >
+                      {g.bestScore}
+                    </span>
                   </Link>
                 ))}
               </div>

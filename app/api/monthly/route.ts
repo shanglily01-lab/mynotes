@@ -5,9 +5,10 @@ interface EnglishRow { month: string; days: bigint; topics: string }
 interface PlanRow    { month: string; done: bigint; total: bigint }
 interface ExamRow    { month: string; subjectId: string; score: number | null; totalQ: number | null }
 interface ArticleRow { month: string; count: bigint }
+interface GameRow    { month: string; gameType: string; sessions: bigint; avgScore: number | null; bestScore: number | null }
 
 export async function GET() {
-  const [englishRows, planRows, examRows, articleRows] = await Promise.all([
+  const [englishRows, planRows, examRows, articleRows, gameRows] = await Promise.all([
     prisma.$queryRaw<EnglishRow[]>`
       SELECT DATE_FORMAT(date, '%Y-%m') AS month,
              COUNT(*) AS days,
@@ -39,6 +40,17 @@ export async function GET() {
       GROUP BY month
       ORDER BY month DESC
     `,
+    prisma.$queryRaw<GameRow[]>`
+      SELECT DATE_FORMAT(endedAt, '%Y-%m') AS month,
+             gameType,
+             COUNT(*) AS sessions,
+             AVG(CAST(score AS DECIMAL(8,2))) AS avgScore,
+             MAX(score) AS bestScore
+      FROM GameSession
+      WHERE endedAt IS NOT NULL
+      GROUP BY month, gameType
+      ORDER BY month DESC
+    `,
   ]);
 
   // Collect all months
@@ -47,6 +59,7 @@ export async function GET() {
     ...planRows.map((r) => r.month),
     ...examRows.map((r) => r.month),
     ...articleRows.map((r) => r.month),
+    ...gameRows.map((r) => r.month),
   ])).sort((a, b) => b.localeCompare(a));
 
   const months = allMonths.map((month) => {
@@ -68,6 +81,16 @@ export async function GET() {
       ? Math.round(examSubjects.reduce((s, r) => s + r.pct, 0) / examSubjects.length)
       : null;
 
+    const monthGames = gameRows
+      .filter((r) => r.month === month)
+      .map((r) => ({
+        gameType: r.gameType,
+        sessions: Number(r.sessions),
+        avgScore: r.avgScore !== null ? Math.round(Number(r.avgScore)) : 0,
+        bestScore: r.bestScore !== null ? Number(r.bestScore) : 0,
+      }));
+    const totalGameSessions = monthGames.reduce((s, g) => s + g.sessions, 0);
+
     return {
       month,
       label,
@@ -81,6 +104,7 @@ export async function GET() {
       },
       exams: { avgPct, subjects: examSubjects },
       articles: art ? Number(art.count) : 0,
+      games: { totalSessions: totalGameSessions, byType: monthGames },
     };
   });
 
