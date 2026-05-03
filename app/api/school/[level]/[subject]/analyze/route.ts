@@ -36,7 +36,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const fileName = `${id}.${ext}`;
 
   await fs.mkdir(SCHOOL_WRONG_ANSWERS_DIR, { recursive: true });
-  const filePath = path.join(SCHOOL_WRONG_ANSWERS_DIR, fileName);
+  // Use literal "data/school-wrong-answers" prefix so Next.js NFT can scope the trace.
+  const filePath = path.join(process.cwd(), "data", "school-wrong-answers", fileName);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(filePath, buffer);

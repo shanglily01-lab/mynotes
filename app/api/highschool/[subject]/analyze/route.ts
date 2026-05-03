@@ -40,7 +40,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   // Save image file
   await fs.mkdir(HS_WRONG_ANSWERS_DIR, { recursive: true });
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const imagePath = path.join(HS_WRONG_ANSWERS_DIR, `${record.id}.${ext}`);
+  // Use literal "data/hs-wrong-answers" prefix so Next.js NFT can scope the trace.
+  const imagePath = path.join(process.cwd(), "data", "hs-wrong-answers", `${record.id}.${ext}`);
   const buffer = Buffer.from(await file.arrayBuffer());
   await fs.writeFile(imagePath, buffer);
 

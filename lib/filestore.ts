@@ -1,27 +1,32 @@
 import fs from "fs/promises";
 import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// IMPORTANT for Next.js 16 NFT (File Tracing):
+// All path.join calls below put `process.cwd(), "data"` as literal segments
+// in a SINGLE call. This anchors the trace to data/, so NFT does not
+// conservatively assume the path could match anywhere in the project root
+// (which would otherwise pull 10000+ files into the standalone bundle).
 
-const DIRS = {
-  articles: path.join(DATA_DIR, "articles"),
-  plans: path.join(DATA_DIR, "plans"),
-  exams: path.join(DATA_DIR, "exams"),
-  progress: path.join(DATA_DIR, "progress"),
-  materials: path.join(DATA_DIR, "materials"),
-  cases: path.join(DATA_DIR, "cases"),
-  "hs-materials":     path.join(DATA_DIR, "hs-materials"),
-  "school-materials": path.join(DATA_DIR, "school-materials"),
-  "hero-stories":     path.join(DATA_DIR, "hero-stories"),
-  "hero-portraits":   path.join(DATA_DIR, "hero-portraits"),
-  "gaokao":           path.join(DATA_DIR, "gaokao"),
-  "zhongkao":         path.join(DATA_DIR, "zhongkao"),
-} as const;
+type StoreDir =
+  | "articles"
+  | "plans"
+  | "exams"
+  | "progress"
+  | "materials"
+  | "cases"
+  | "hs-materials"
+  | "school-materials"
+  | "hero-stories"
+  | "hero-portraits"
+  | "gaokao"
+  | "zhongkao";
 
-export const HS_WRONG_ANSWERS_DIR     = path.join(DATA_DIR, "hs-wrong-answers");
-export const SCHOOL_WRONG_ANSWERS_DIR = path.join(DATA_DIR, "school-wrong-answers");
+function dirFor(category: StoreDir): string {
+  return path.join(process.cwd(), "data", category);
+}
 
-type StoreDir = keyof typeof DIRS;
+export const HS_WRONG_ANSWERS_DIR     = path.join(process.cwd(), "data", "hs-wrong-answers");
+export const SCHOOL_WRONG_ANSWERS_DIR = path.join(process.cwd(), "data", "school-wrong-answers");
 
 async function ensureDir(dir: string) {
   await fs.mkdir(dir, { recursive: true });
@@ -32,8 +37,9 @@ export async function writeText(
   id: string,
   content: string
 ): Promise<string> {
-  await ensureDir(DIRS[category]);
-  const filePath = path.join(DIRS[category], `${id}.txt`);
+  const dir = dirFor(category);
+  await ensureDir(dir);
+  const filePath = path.join(process.cwd(), "data", category, `${id}.txt`);
   await fs.writeFile(filePath, content, "utf-8");
   return filePath;
 }
@@ -51,8 +57,9 @@ export async function writeMarkdown(
   id: string,
   content: string
 ): Promise<string> {
-  await ensureDir(DIRS[category]);
-  const filePath = path.join(DIRS[category], `${id}.md`);
+  const dir = dirFor(category);
+  await ensureDir(dir);
+  const filePath = path.join(process.cwd(), "data", category, `${id}.md`);
   await fs.writeFile(filePath, content, "utf-8");
   return filePath;
 }
@@ -79,8 +86,9 @@ export async function writeBinary(
   ext: string,
   data: Buffer
 ): Promise<string> {
-  await ensureDir(DIRS[category]);
-  const filePath = path.join(DIRS[category], `${id}.${ext}`);
+  const dir = dirFor(category);
+  await ensureDir(dir);
+  const filePath = path.join(process.cwd(), "data", category, `${id}.${ext}`);
   await fs.writeFile(filePath, data);
   return filePath;
 }
