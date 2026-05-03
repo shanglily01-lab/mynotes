@@ -10,6 +10,7 @@ import rehypeKatex from "rehype-katex";
 import { getHSSubject } from "@/lib/hs-subjects";
 import type { HSAnalysisResult } from "@/lib/claude";
 import ImageViewer from "@/components/ui/ImageViewer";
+import { compressImage } from "@/lib/image-compress";
 
 type Tab = "knowledge" | "analyze" | "history";
 
@@ -118,6 +119,13 @@ function KnowledgeSection({
       </div>
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function LevelBadge({ level }: { level: string }) {
@@ -264,6 +272,9 @@ export default function HSSubjectPage({
 
   // Tab 2: Analyze
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [originalSize, setOriginalSize] = useState<number>(0);
+  const [compressing, setCompressing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<HSAnalysisResult | null>(null);
@@ -335,14 +346,27 @@ export default function HSSubjectPage({
 
   // ---- Tab 2 handlers ----
 
-  const handleFileChange = useCallback((file: File | null) => {
+  const handleFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
     setImageFile(file);
+    setOriginalSize(file.size);
+    setUploadFile(null);
     setAnalysisResult(null);
     setAnalyzeError(null);
+    setCompressing(true);
+
     const reader = new FileReader();
     reader.onload = (e) => setImagePreview(e.target?.result as string);
     reader.readAsDataURL(file);
+
+    try {
+      const compressed = await compressImage(file, { maxDimension: 1600, quality: 0.85 });
+      setUploadFile(compressed);
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : "图片处理失败");
+    } finally {
+      setCompressing(false);
+    }
   }, []);
 
   function handleDrop(e: React.DragEvent) {
@@ -352,28 +376,49 @@ export default function HSSubjectPage({
   }
 
   async function handleAnalyze() {
-    if (!imageFile) return;
+    if (!uploadFile) return;
     setAnalyzing(true);
     setAnalyzeError(null);
     setAnalysisResult(null);
+
     const form = new FormData();
-    form.append("file", imageFile);
+    form.append("file", uploadFile);
+
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 90_000);
+
     try {
       const res = await fetch(`/api/highschool/${subject}/analyze`, {
         method: "POST",
         body: form,
+        signal: ctrl.signal,
       });
-      const data = await res.json() as { analysis?: HSAnalysisResult; error?: string };
-      if (!res.ok || data.error) {
-        setAnalyzeError(data.error ?? "分析失败，请重试");
-      } else {
-        setAnalysisResult(data.analysis ?? null);
-        // Invalidate history cache
-        setHistoryLoaded(false);
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        const tip =
+          res.status === 413 ? "图片太大被服务器拒绝（建议清晰但不超过约 5MB）" :
+          res.status === 504 || res.status === 502 ? "服务器响应超时，请稍后重试" :
+          res.status === 500 ? `AI 分析失败：${text.slice(0, 200) || "未知"}` :
+          `服务器返回 ${res.status}：${text.slice(0, 200) || "无错误信息"}`;
+        setAnalyzeError(tip);
+        return;
       }
-    } catch {
-      setAnalyzeError("网络错误，请重试");
+
+      const data = await res.json() as { analysis?: HSAnalysisResult; error?: string };
+      if (data.error) { setAnalyzeError(data.error); return; }
+      setAnalysisResult(data.analysis ?? null);
+      setHistoryLoaded(false);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setAnalyzeError("上传/分析超时（90 秒），请检查网络后重试");
+      } else if (err instanceof Error) {
+        setAnalyzeError(`网络错误：${err.message}`);
+      } else {
+        setAnalyzeError("网络错误，请重试");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setAnalyzing(false);
     }
   }
@@ -521,7 +566,7 @@ export default function HSSubjectPage({
           {/* Upload area */}
           <div>
             <p className="text-[12px] text-[#9a9590] mb-3">
-              上传错题图片（支持 jpg/png/webp，最大 10MB）
+              上传错题图片（支持手机直接拍照，自动压缩适配上传）
             </p>
             <div
               className="border-2 border-dashed border-[#d8d4ca] hover:border-[#003087] transition-colors cursor-pointer relative"
@@ -533,9 +578,9 @@ export default function HSSubjectPage({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/*"
                 className="hidden"
-                onChange={(e) => handleFileChange(e.target.files?.[0] ?? null)}
+                onChange={(e) => void handleFileChange(e.target.files?.[0] ?? null)}
               />
 
               {!imagePreview && (
@@ -546,6 +591,7 @@ export default function HSSubjectPage({
                     <path d="m21 15-5-5L5 21" />
                   </svg>
                   <p className="text-[13px]">点击或拖拽上传错题图片</p>
+                  <p className="text-[11px] mt-1">手机会自动调用相机或相册</p>
                 </div>
               )}
 
@@ -557,18 +603,38 @@ export default function HSSubjectPage({
             </div>
 
             {imagePreview && (
+              <div className="mt-2 px-3 py-2 bg-[#f5f2eb] border border-[#e4e0d8] text-[12px] text-[#5a5550] flex items-center justify-between gap-3 flex-wrap">
+                <span>
+                  原图 <span className="font-semibold text-[#1c1a16] tabular-nums">{formatBytes(originalSize)}</span>
+                  {compressing && <span className="ml-2 italic text-[#9a9590]">压缩中...</span>}
+                  {!compressing && uploadFile && (
+                    <>
+                      <span className="mx-2 text-[#9a9590]">→</span>
+                      待上传 <span className="font-semibold text-[#1a5c34] tabular-nums">{formatBytes(uploadFile.size)}</span>
+                    </>
+                  )}
+                </span>
+                {!compressing && uploadFile && (
+                  <span className="text-[#1a5c34] font-semibold">可上传</span>
+                )}
+              </div>
+            )}
+
+            {imagePreview && (
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={() => void handleAnalyze()}
-                  disabled={analyzing}
+                  disabled={analyzing || compressing || !uploadFile}
                   className="px-5 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: color }}
                 >
-                  {analyzing ? "AI 正在分析..." : "开始 AI 诊断"}
+                  {analyzing ? "AI 正在分析..." : compressing ? "图片处理中..." : "开始 AI 诊断"}
                 </button>
                 <button
                   onClick={() => {
                     setImageFile(null);
+                    setUploadFile(null);
+                    setOriginalSize(0);
                     setImagePreview(null);
                     setAnalysisResult(null);
                     setAnalyzeError(null);
